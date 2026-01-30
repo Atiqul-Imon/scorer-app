@@ -107,6 +107,7 @@ export interface ScorerRegistrationDto {
   name: string;
   phone: string;
   email?: string;
+  password: string;
   location: {
     city: string;
     district?: string;

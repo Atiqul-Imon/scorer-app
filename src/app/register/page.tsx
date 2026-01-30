@@ -15,6 +15,8 @@ export default function RegisterPage() {
     name: '',
     phone: '',
     email: '',
+    password: '',
+    confirmPassword: '',
     city: '',
     district: '',
     area: '',
@@ -40,6 +42,18 @@ export default function RegisterPage() {
 
     if (formData.email && !validateEmail(formData.email)) {
       newErrors.email = 'Please enter a valid email address';
+    }
+
+    if (!formData.password.trim()) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+
+    if (!formData.confirmPassword.trim()) {
+      newErrors.confirmPassword = 'Please confirm your password';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
     }
 
     if (!formData.city.trim()) {
@@ -69,6 +83,7 @@ export default function RegisterPage() {
         name: formData.name,
         phone: formData.phone,
         email: formData.email || undefined,
+        password: formData.password,
         location: {
           city: formData.city,
           district: formData.district || undefined,
@@ -167,6 +182,28 @@ export default function RegisterPage() {
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               error={errors.email}
               placeholder="your.email@example.com"
+            />
+
+            <Input
+              label="Password"
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              error={errors.password}
+              required
+              placeholder="At least 6 characters"
+              autoComplete="new-password"
+            />
+
+            <Input
+              label="Confirm Password"
+              type="password"
+              value={formData.confirmPassword}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              error={errors.confirmPassword}
+              required
+              placeholder="Re-enter your password"
+              autoComplete="new-password"
             />
 
             <div className="space-y-3">
