@@ -82,7 +82,7 @@ apiClient.interceptors.response.use(
 // API methods
 export const api = {
   // Authentication
-  async login(data: LoginDto): Promise<ApiResponse<AuthResponse>> {
+  async login(data: { emailOrPhone: string; password: string }): Promise<ApiResponse<AuthResponse>> {
     const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', data);
     return response.data;
   },

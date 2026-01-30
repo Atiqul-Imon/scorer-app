@@ -189,7 +189,7 @@ export interface PaginatedResponse<T> {
 
 // Auth Types
 export interface LoginDto {
-  email: string;
+  emailOrPhone: string;
   password: string;
 }
 

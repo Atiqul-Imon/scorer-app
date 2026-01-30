@@ -67,9 +67,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount - NO API CALLS
 
-  const login = async (email: string, password: string) => {
+  const login = async (emailOrPhone: string, password: string) => {
     try {
-      const response = await api.login({ email, password });
+      const response = await api.login({ emailOrPhone, password });
       const { token, user: userData } = response.data;
 
       localStorage.setItem('token', token);
