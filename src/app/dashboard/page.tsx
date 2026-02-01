@@ -36,19 +36,25 @@ export default function DashboardPage() {
       }
 
       const [matchesResponse] = await Promise.all([
-        api.getScorerMatches({ limit: 10 }),
+        api.getScorerMatches({ limit: 50 }), // Get more matches to filter
       ]);
 
-      const matchesData = matchesResponse.data.data || [];
-      setMatches(matchesData);
+      // Filter to show only matches assigned to this scorer
+      const allMatches = matchesResponse.data.data || [];
+      const assignedMatches = allMatches.filter((m: CricketMatch) => {
+        // Only show matches created by this scorer
+        return m.scorerInfo?.scorerId === user?.scorerProfile?.scorerId;
+      });
+      
+      setMatches(assignedMatches);
 
       // Calculate stats
-      const active = matchesData.filter((m) => m.status === 'live').length;
-      const completed = matchesData.filter((m) => m.status === 'completed').length;
+      const active = assignedMatches.filter((m) => m.status === 'live').length;
+      const completed = assignedMatches.filter((m) => m.status === 'completed').length;
       const accuracy = user?.scorerProfile?.accuracyScore || 100;
 
       setStats({
-        total: matchesData.length,
+        total: assignedMatches.length,
         active,
         completed,
         accuracy,

@@ -162,6 +162,31 @@ export const api = {
     );
     return response.data;
   },
+
+  // Match Setup
+  async completeMatchSetup(matchId: string, setupData: any): Promise<ApiResponse<CricketMatch>> {
+    const response = await apiClient.post<ApiResponse<CricketMatch>>(
+      `/cricket/local/matches/${matchId}/setup`,
+      setupData
+    );
+    return response.data;
+  },
+
+  // Ball-by-ball scoring
+  async recordBall(matchId: string, ballData: any): Promise<ApiResponse<CricketMatch>> {
+    const response = await apiClient.post<ApiResponse<CricketMatch>>(
+      `/cricket/local/matches/${matchId}/ball`,
+      ballData
+    );
+    return response.data;
+  },
+
+  async undoLastBall(matchId: string): Promise<ApiResponse<CricketMatch>> {
+    const response = await apiClient.post<ApiResponse<CricketMatch>>(
+      `/cricket/local/matches/${matchId}/undo`
+    );
+    return response.data;
+  },
 };
 
 export default apiClient;
