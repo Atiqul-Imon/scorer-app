@@ -55,6 +55,7 @@ apiClient.interceptors.response.use(
         
         const currentPath = window.location.pathname;
         // Only redirect if not already on login/register/home page
+        // Also skip redirect if we're on a public route
         if (!currentPath.includes('/login') && 
             !currentPath.includes('/register') && 
             currentPath !== '/') {

@@ -11,14 +11,14 @@ interface AuthContextType {
   logout: () => void;
   isAuthenticated: boolean;
   isScorer: boolean;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false); // Start with false - don't block
+  const [loading, setLoading] = useState(true); // Start with true to verify token on mount
 
   const refreshUser = useCallback(async () => {
     try {
@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (typeof window !== 'undefined') {
         localStorage.setItem('user', JSON.stringify(response.data));
       }
+      return true; // Success
     } catch (error: any) {
       if (error?.response?.status === 401) {
         setUser(null);
@@ -35,37 +36,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem('user');
         }
       }
+      return false; // Failed
     }
   }, []);
 
   useEffect(() => {
-    // Initialize auth state - completely synchronous, non-blocking
-    // NO API CALLS on initial mount to prevent redirect loops
+    // Initialize auth state and verify token
     if (typeof window === 'undefined') {
+      setLoading(false);
       return;
     }
 
-    try {
-      const token = localStorage.getItem('token');
-      const savedUser = localStorage.getItem('user');
+    const initializeAuth = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const savedUser = localStorage.getItem('user');
 
-      if (token && savedUser) {
-        try {
-          const parsedUser = JSON.parse(savedUser);
-          setUser(parsedUser);
-          // DO NOT call refreshUser on mount - let pages handle it
-          // This prevents API calls during initial page load/redirect
-        } catch (error) {
-          // Invalid JSON - clear it
+        if (token && savedUser) {
+          try {
+            const parsedUser = JSON.parse(savedUser);
+            // Set user immediately for optimistic UI
+            setUser(parsedUser);
+            
+            // Verify token is still valid by calling API
+            const isValid = await refreshUser();
+            if (!isValid) {
+              // Token invalid, user already cleared by refreshUser
+              setUser(null);
+            }
+          } catch (error) {
+            // Invalid JSON - clear it
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
+          }
+        } else {
+          // No token or user saved
+          setUser(null);
+        }
+      } catch (error) {
+        // Ignore errors, just clear state
+        setUser(null);
+        if (typeof window !== 'undefined') {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
         }
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      // Ignore errors
-    }
+    };
+
+    initializeAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount - NO API CALLS
+  }, []); // Only run once on mount
 
   const login = async (emailOrPhone: string, password: string) => {
     try {
