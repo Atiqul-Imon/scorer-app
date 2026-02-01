@@ -138,10 +138,25 @@ export default function UpdateScorePage() {
       const response = await api.updateScore(matchId, score);
 
       if (response.success) {
+        // Update local match state with the new score
+        if (response.data) {
+          setMatch((prev) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              currentScore: {
+                home: response.data.currentScore?.home || score.home,
+                away: response.data.currentScore?.away || score.away,
+              },
+              matchNote: response.data.matchNote || score.matchNote,
+            };
+          });
+        }
+        
+        // Show success message
         success('Score updated successfully!');
-        setTimeout(() => {
-          router.push(`/matches/${matchId}`);
-        }, 1000);
+        
+        // Don't navigate away - stay on the page for continuous updates
       }
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || 'Failed to update score';
@@ -219,11 +234,11 @@ export default function UpdateScorePage() {
         )}
 
         {/* Home Team Score */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <Card className="p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 truncate">
             {match.teams.home.name}
           </h2>
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <ScoreInput
               label="Runs"
               value={score.home.runs}
@@ -250,18 +265,18 @@ export default function UpdateScorePage() {
                 value={formatOvers(score.home.overs)}
                 onChange={(e) => handleOversChange('home', e.target.value)}
                 placeholder="0.0"
-                className="text-center text-xl font-bold"
+                className="text-center text-lg sm:text-xl font-bold"
               />
             </div>
           </div>
         </Card>
 
         {/* Away Team Score */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <Card className="p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 truncate">
             {match.teams.away.name}
           </h2>
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <ScoreInput
               label="Runs"
               value={score.away.runs}
@@ -288,7 +303,7 @@ export default function UpdateScorePage() {
                 value={formatOvers(score.away.overs)}
                 onChange={(e) => handleOversChange('away', e.target.value)}
                 placeholder="0.0"
-                className="text-center text-xl font-bold"
+                className="text-center text-lg sm:text-xl font-bold"
               />
             </div>
           </div>
@@ -306,20 +321,20 @@ export default function UpdateScorePage() {
         </Card>
 
         {/* Current Score Display */}
-        <Card className="p-4 bg-primary-50">
+        <Card className="p-3 sm:p-4 bg-primary-50">
           <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">Current Score</p>
-            <div className="flex items-center justify-center gap-4">
-              <div>
-                <p className="text-xs text-gray-600">{match.teams.home.shortName}</p>
-                <p className="text-2xl font-bold text-gray-900">
+            <p className="text-xs sm:text-sm text-gray-600 mb-2">Current Score</p>
+            <div className="flex items-center justify-center gap-3 sm:gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-600 truncate">{match.teams.home.shortName}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {formatScore(score.home)}
                 </p>
               </div>
-              <span className="text-gray-400">vs</span>
-              <div>
-                <p className="text-xs text-gray-600">{match.teams.away.shortName}</p>
-                <p className="text-2xl font-bold text-gray-900">
+              <span className="text-gray-400 text-sm sm:text-base">vs</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-600 truncate">{match.teams.away.shortName}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {formatScore(score.away)}
                 </p>
               </div>
@@ -328,13 +343,14 @@ export default function UpdateScorePage() {
         </Card>
 
         {/* Actions */}
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3 pb-4 sm:pb-0">
           <Button
             variant="outline"
             size="lg"
             fullWidth
             onClick={() => router.back()}
             disabled={saving}
+            className="text-sm sm:text-base"
           >
             Cancel
           </Button>
@@ -345,17 +361,19 @@ export default function UpdateScorePage() {
             onClick={handleUpdate}
             loading={saving}
             disabled={saving}
-            className="flex items-center justify-center gap-2"
+            className="flex items-center justify-center gap-2 text-sm sm:text-base"
           >
             {saving ? (
               <>
                 <Save className="w-4 h-4" />
-                Saving...
+                <span className="hidden sm:inline">Saving...</span>
+                <span className="sm:hidden">Saving</span>
               </>
             ) : (
               <>
                 <Check className="w-4 h-4" />
-                Update Score
+                <span className="hidden sm:inline">Update Score</span>
+                <span className="sm:hidden">Update</span>
               </>
             )}
           </Button>

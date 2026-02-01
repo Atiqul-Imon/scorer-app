@@ -78,7 +78,7 @@ export default function ScoreInput({
           max={max}
           step={step}
           disabled={disabled}
-          className="text-center text-2xl font-bold"
+          className="text-center text-xl sm:text-2xl font-bold"
           aria-label={label}
         />
         <Button
