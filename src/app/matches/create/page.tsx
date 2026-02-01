@@ -3,16 +3,18 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { api } from '@/lib/api';
+import AppLayout from '@/components/layout/AppLayout';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { format } from 'date-fns';
 
 export default function CreateMatchPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { success, error: showError } = useToast();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -95,27 +97,22 @@ export default function CreateMatchPage() {
       const response = await api.createMatch(matchData);
 
       if (response.success) {
-        router.push(`/matches/${response.data.matchId}`);
+        success('Match created successfully!');
+        setTimeout(() => {
+          router.push(`/matches/${response.data.matchId}`);
+        }, 500);
       }
     } catch (error: any) {
-      setErrors({
-        submit: error.response?.data?.message || 'Failed to create match. Please try again.',
-      });
+      const errorMessage = error.response?.data?.message || 'Failed to create match. Please try again.';
+      setErrors({ submit: errorMessage });
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 safe-bottom">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 safe-top">
-        <div className="container-mobile py-4">
-          <h1 className="text-xl font-bold text-gray-900">Create New Match</h1>
-        </div>
-      </div>
-
-      <div className="container-mobile py-6">
+    <AppLayout title="Create New Match" showBack>
         <Card className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             {errors.submit && (
@@ -325,10 +322,15 @@ export default function CreateMatchPage() {
             </div>
           </form>
         </Card>
-      </div>
-    </div>
+    </AppLayout>
   );
 }
+
+
+
+
+
+
 
 
 

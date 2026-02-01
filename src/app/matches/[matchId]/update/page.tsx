@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { api } from '@/lib/api';
 import { connectSocket, subscribeToMatch, unsubscribeFromMatch, type ScoreUpdateEvent } from '@/lib/socket';
+import AppLayout from '@/components/layout/AppLayout';
 import ScoreInput from '@/components/ui/ScoreInput';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
-import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import Badge from '@/components/ui/Badge';
 import { formatScore, formatDate } from '@/lib/utils';
 import { formatOvers, parseOvers } from '@/lib/utils';
@@ -21,6 +22,7 @@ export default function UpdateScorePage() {
   const params = useParams();
   const matchId = params.matchId as string;
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { success, error: showError } = useToast();
 
   const [match, setMatch] = useState<CricketMatch | null>(null);
   const [loading, setLoading] = useState(true);
@@ -111,15 +113,21 @@ export default function UpdateScorePage() {
 
     // Validation
     if (score.home.runs < 0 || score.away.runs < 0) {
-      setError('Runs cannot be negative');
+      const errorMsg = 'Runs cannot be negative';
+      setError(errorMsg);
+      showError(errorMsg);
       return;
     }
     if (score.home.wickets < 0 || score.home.wickets > 10) {
-      setError('Home team wickets must be between 0 and 10');
+      const errorMsg = 'Home team wickets must be between 0 and 10';
+      setError(errorMsg);
+      showError(errorMsg);
       return;
     }
     if (score.away.wickets < 0 || score.away.wickets > 10) {
-      setError('Away team wickets must be between 0 and 10');
+      const errorMsg = 'Away team wickets must be between 0 and 10';
+      setError(errorMsg);
+      showError(errorMsg);
       return;
     }
 
@@ -130,13 +138,15 @@ export default function UpdateScorePage() {
       const response = await api.updateScore(matchId, score);
 
       if (response.success) {
-        // Show success message briefly
+        success('Score updated successfully!');
         setTimeout(() => {
           router.push(`/matches/${matchId}`);
         }, 1000);
       }
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Failed to update score');
+      const errorMsg = error.response?.data?.message || 'Failed to update score';
+      setError(errorMsg);
+      showError(errorMsg);
     } finally {
       setSaving(false);
     }
@@ -155,43 +165,42 @@ export default function UpdateScorePage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <AppLayout title="Update Score" showBack>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading match...</p>
+          </div>
+        </div>
+      </AppLayout>
     );
   }
 
   if (!match) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <Card className="p-8 text-center">
+      <AppLayout title="Update Score" showBack>
+        <Card className="p-8 text-center max-w-md mx-auto">
           <p className="text-gray-600 mb-4">Match not found</p>
           <Button variant="primary" onClick={() => router.push('/matches')}>
             Go to Matches
           </Button>
         </Card>
-      </div>
+      </AppLayout>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 pb-20 safe-bottom">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 safe-top">
-        <div className="container-mobile py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Update Score</h1>
-              <p className="text-sm text-gray-600">
-                {match.teams.home.name} vs {match.teams.away.name}
-              </p>
-            </div>
-            <Badge variant="success">Live</Badge>
-          </div>
-        </div>
-      </div>
+  const headerActions = (
+    <Badge variant="success">Live</Badge>
+  );
 
-      <div className="container-mobile py-6 space-y-6">
+  return (
+    <AppLayout
+      title="Update Score"
+      subtitle={`${match.teams.home.name} vs ${match.teams.away.name}`}
+      showBack
+      headerActions={headerActions}
+    >
+      <div className="space-y-6">
         {/* Match Info */}
         <Card className="p-4">
           <div className="space-y-2 text-sm">
@@ -352,7 +361,7 @@ export default function UpdateScorePage() {
           </Button>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 

@@ -83,7 +83,18 @@ apiClient.interceptors.response.use(
 export const api = {
   // Authentication
   async login(data: { emailOrPhone: string; password: string }): Promise<ApiResponse<AuthResponse>> {
-    const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', data);
+    // Ensure we only send emailOrPhone, not email - explicitly construct the payload
+    const payload = {
+      emailOrPhone: String(data.emailOrPhone || '').trim(),
+      password: String(data.password || '').trim(),
+    };
+    
+    // Remove any undefined or null values
+    if (!payload.emailOrPhone || !payload.password) {
+      throw new Error('Email/Phone and password are required');
+    }
+    
+    const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', payload);
     return response.data;
   },
 

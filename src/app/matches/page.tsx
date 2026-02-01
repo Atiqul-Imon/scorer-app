@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
+import AppLayout from '@/components/layout/AppLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
@@ -12,7 +13,8 @@ import Input from '@/components/ui/Input';
 import Link from 'next/link';
 import { formatDate, formatScore } from '@/lib/utils';
 import type { CricketMatch } from '@/types';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Search, RefreshCw, Inbox } from 'lucide-react';
+import EmptyState from '@/components/ui/EmptyState';
 
 function MatchesContent() {
   const router = useRouter();
@@ -20,6 +22,7 @@ function MatchesContent() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const [matches, setMatches] = useState<CricketMatch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>(
     searchParams.get('status') || 'all'
   );
@@ -36,8 +39,12 @@ function MatchesContent() {
     }
   }, [isAuthenticated, authLoading, statusFilter, router]);
 
-  const loadMatches = async () => {
-    setLoading(true);
+  const loadMatches = async (showRefresh = false) => {
+    if (showRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     try {
       const filters: any = { limit: 50 };
       if (statusFilter !== 'all') {
@@ -50,6 +57,7 @@ function MatchesContent() {
       console.error('Failed to load matches:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -64,74 +72,75 @@ function MatchesContent() {
     );
   });
 
+  const headerActions = (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => loadMatches(true)}
+      disabled={refreshing}
+      className="touch-target"
+      aria-label="Refresh"
+    >
+      <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+    </Button>
+  );
+
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <AppLayout title="My Matches">
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading matches...</p>
+          </div>
+        </div>
+      </AppLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 safe-bottom">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 safe-top">
-        <div className="container-mobile py-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-gray-900">My Matches</h1>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={() => router.push('/matches/create')}
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New Match</span>
-            </Button>
-          </div>
-
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search matches..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-
-          {/* Status Filter */}
-          <div className="flex gap-2 overflow-x-auto hide-scrollbar">
-            {['all', 'upcoming', 'live', 'completed'].map((status) => (
-              <button
-                key={status}
-                onClick={() => setStatusFilter(status)}
-                className={`
-                  px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap min-w-[80px]
-                  transition-colors
-                  ${
-                    statusFilter === status
-                      ? 'bg-primary-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }
-                `}
-              >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-              </button>
-            ))}
-          </div>
+    <AppLayout title="My Matches" headerActions={headerActions}>
+      <div className="space-y-4">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search matches..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
         </div>
-      </div>
 
-      {/* Matches List */}
-      <div className="container-mobile py-6">
+        {/* Status Filter */}
+        <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
+          {['all', 'upcoming', 'live', 'completed'].map((status) => (
+            <button
+              key={status}
+              onClick={() => setStatusFilter(status)}
+              className={`
+                px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap min-w-[80px]
+                transition-colors touch-target
+                ${
+                  statusFilter === status
+                    ? 'bg-primary-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }
+              `}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Matches List */}
+        <div>
         {filteredMatches.length > 0 ? (
           <div className="space-y-3">
             {filteredMatches.map((match) => (
               <Link key={match.matchId} href={`/matches/${match.matchId}`}>
-                <Card className="p-4 hover:shadow-md transition-shadow">
+                <Card variant="elevated" hover className="p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <p className="font-semibold text-gray-900 mb-1">
@@ -190,60 +199,38 @@ function MatchesContent() {
             ))}
           </div>
         ) : (
-          <Card className="p-8 text-center">
-            <p className="text-gray-600 mb-4">
-              {searchQuery ? 'No matches found' : 'No matches yet'}
-            </p>
-            {!searchQuery && (
-              <Button variant="primary" onClick={() => router.push('/matches/create')}>
-                Create Your First Match
-              </Button>
-            )}
-          </Card>
+          <EmptyState
+            icon={<Inbox className="w-12 h-12 text-gray-400" />}
+            title={searchQuery ? 'No matches found' : 'No matches yet'}
+            description={
+              searchQuery
+                ? 'Try adjusting your search or filters'
+                : 'Start scoring by creating your first match'
+            }
+            action={
+              !searchQuery
+                ? {
+                    label: 'Create Your First Match',
+                    onClick: () => router.push('/matches/create'),
+                  }
+                : undefined
+            }
+          />
         )}
-      </div>
-
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-bottom">
-        <div className="container-mobile">
-          <nav className="flex items-center justify-around py-2">
-            <Link
-              href="/dashboard"
-              className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600"
-            >
-              <span className="text-xs">Dashboard</span>
-            </Link>
-            <Link
-              href="/matches"
-              className="flex flex-col items-center gap-1 px-4 py-2 text-primary-600"
-            >
-              <span className="text-xs font-medium">Matches</span>
-            </Link>
-            <Link
-              href="/matches/create"
-              className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600"
-            >
-              <span className="text-xs">Create</span>
-            </Link>
-            <Link
-              href="/profile"
-              className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600"
-            >
-              <span className="text-xs">Profile</span>
-            </Link>
-          </nav>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 
 export default function MatchesPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
+      <AppLayout title="My Matches">
+        <div className="flex items-center justify-center py-12">
+          <LoadingSpinner size="lg" />
+        </div>
+      </AppLayout>
     }>
       <MatchesContent />
     </Suspense>
