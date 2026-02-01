@@ -11,6 +11,9 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import LiveScoringInterface from '@/components/scoring/LiveScoringInterface';
 import WicketPopup, { DismissalType } from '@/components/scoring/WicketPopup';
+import InningsBreakModal from '@/components/scoring/InningsBreakModal';
+import MatchEndModal from '@/components/scoring/MatchEndModal';
+import BowlerChangeModal from '@/components/scoring/BowlerChangeModal';
 import type { CricketMatch } from '@/types';
 import { formatScore } from '@/lib/utils';
 import { Wifi, WifiOff, RotateCcw } from 'lucide-react';
@@ -41,6 +44,10 @@ export default function LiveScoringPage() {
   const [ballHistory, setBallHistory] = useState<BallAction[]>([]);
   const [showWicketPopup, setShowWicketPopup] = useState(false);
   const [pendingWicket, setPendingWicket] = useState<{ runs: number; ballType: string } | null>(null);
+  const [showInningsBreak, setShowInningsBreak] = useState(false);
+  const [showMatchEnd, setShowMatchEnd] = useState(false);
+  const [showBowlerChange, setShowBowlerChange] = useState(false);
+  const [currentBowlerOvers, setCurrentBowlerOvers] = useState(0);
 
   const { isOnline, queueLength, addToQueue, syncQueue } = useOfflineQueue(matchId);
 
@@ -88,7 +95,7 @@ export default function LiveScoringPage() {
     }
   }, [isOnline, queueLength]);
 
-  const loadMatch = async () => {
+  const loadMatch = useCallback(async () => {
     try {
       const response = await api.getMatch(matchId);
       const matchData = response.data;
@@ -124,11 +131,18 @@ export default function LiveScoringPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [matchId, router, showError]);
 
   const recordBall = useCallback(
     async (runs: number, ballType: string, isWicket: boolean = false) => {
       if (!match) return;
+
+      // Check if match is locked
+      // @ts-ignore
+      if (match.isLocked) {
+        showError('Match is locked and cannot be edited');
+        return;
+      }
 
       // If wicket, show popup first
       if (isWicket) {
@@ -245,12 +259,19 @@ export default function LiveScoringPage() {
         }
       }
     },
-    [match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, success, showError]
+    [match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, battingTeam, bowlerId, matchId, isOnline, addToQueue, success, showError, loadMatch]
   );
 
   const handleWicketConfirm = useCallback(
     async (data: { dismissalType: DismissalType; fielderId?: string; incomingBatterId: string }) => {
       if (!pendingWicket || !match) return;
+
+      // Check if match is locked
+      // @ts-ignore
+      if (match.isLocked) {
+        showError('Match is locked and cannot be edited');
+        return;
+      }
 
       const newBall: BallAction = {
         id: `ball-${Date.now()}`,
@@ -278,6 +299,13 @@ export default function LiveScoringPage() {
       }
       setCurrentOver(nextOver);
       setCurrentBall(nextBall);
+
+      // Reload match to get updated stats (for completion detection)
+      if (isOnline) {
+        setTimeout(() => {
+          loadMatch();
+        }, 500);
+      }
 
       // Sync to backend
       try {
@@ -317,11 +345,20 @@ export default function LiveScoringPage() {
         showError('Failed to record wicket');
       }
     },
-    [pendingWicket, match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, bowlerId, battingTeam, matchId, isOnline, addToQueue, success, showError]
+    [pendingWicket, match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, bowlerId, battingTeam, matchId, isOnline, addToQueue, success, showError, loadMatch]
   );
 
   const handleUndo = useCallback(async () => {
     if (ballHistory.length === 0) return;
+
+    // Check if match is locked
+    if (match) {
+      // @ts-ignore
+      if (match.isLocked) {
+        showError('Match is locked and cannot be edited');
+        return;
+      }
+    }
 
     const lastBall = ballHistory[ballHistory.length - 1];
     setBallHistory((prev) => prev.slice(0, -1));
@@ -350,7 +387,170 @@ export default function LiveScoringPage() {
     } catch (error) {
       showError('Failed to undo ball');
     }
-  }, [ballHistory, currentOver, matchId, isOnline, addToQueue, success, showError]);
+  }, [ballHistory, currentOver, matchId, isOnline, addToQueue, success, showError, match, showError]);
+
+  // Get max overs based on format
+  const getMaxOvers = useCallback(() => {
+    if (!match) return 20; // Default T20
+    const format = match.format?.toLowerCase() || 't20';
+    if (format.includes('t20')) return 20;
+    if (format.includes('odi') || format.includes('list-a')) return 50;
+    return undefined; // Test/First-class - no max overs
+  }, [match]);
+
+  // Check if innings is complete
+  const checkInningsComplete = useCallback(() => {
+    if (!match || !match.currentScore) return false;
+
+    const score = match.currentScore[battingTeam];
+    const maxOvers = getMaxOvers();
+    const isAllOut = score.wickets >= 10;
+    const reachedMaxOvers = maxOvers !== undefined && score.overs >= maxOvers && score.balls === 0;
+
+    return isAllOut || reachedMaxOvers;
+  }, [match, battingTeam, getMaxOvers]);
+
+  // Check if match is complete
+  const checkMatchComplete = useCallback(() => {
+    if (!match || !match.currentScore || currentInnings !== 2) return false;
+
+    const score = match.currentScore[battingTeam];
+    const maxOvers = getMaxOvers();
+    const isAllOut = score.wickets >= 10;
+    const reachedMaxOvers = maxOvers !== undefined && score.overs >= maxOvers && score.balls === 0;
+
+    // Second innings complete
+    if (isAllOut || reachedMaxOvers) {
+      return true;
+    }
+
+    return false;
+  }, [match, battingTeam, currentInnings, getMaxOvers]);
+
+  // Check if bowler needs to be changed (max 4 overs in T20, 10 in ODI)
+  const checkBowlerChange = useCallback(() => {
+    if (!match || !bowlerId) return false;
+
+    const format = match.format?.toLowerCase() || 't20';
+    let maxOversPerBowler = 4; // Default T20
+    if (format.includes('odi') || format.includes('list-a')) {
+      maxOversPerBowler = 10;
+    }
+
+    // @ts-ignore
+    const bowlerStats = match.bowlingStats?.find(
+      (s: any) => s.playerId === bowlerId && s.innings === currentInnings
+    );
+
+    if (bowlerStats) {
+      // Calculate total overs bowled (overs + balls/6)
+      const totalOvers = bowlerStats.overs + ((bowlerStats.balls || 0) / 6);
+      if (totalOvers >= maxOversPerBowler) {
+        return true;
+      }
+    }
+
+    return false;
+  }, [match, bowlerId, currentInnings]);
+
+  // Check for innings/match completion after score update
+  useEffect(() => {
+    if (!match || !match.currentScore) return;
+
+    // Check if match is locked
+    // @ts-ignore
+    if (match.isLocked) {
+      setShowMatchEnd(false); // Don't show if already completed
+      return;
+    }
+
+    // Check innings completion
+    if (currentInnings === 1 && checkInningsComplete() && !showInningsBreak) {
+      setShowInningsBreak(true);
+    }
+
+    // Check match completion
+    if (currentInnings === 2 && checkMatchComplete() && !showMatchEnd) {
+      setShowMatchEnd(true);
+    }
+
+    // Check bowler change
+    if (checkBowlerChange() && !showBowlerChange) {
+      // @ts-ignore
+      const bowlerStats = match.bowlingStats?.find(
+        (s: any) => s.playerId === bowlerId && s.innings === currentInnings
+      );
+      if (bowlerStats) {
+        // Calculate total overs for display
+        const totalOvers = bowlerStats.overs + ((bowlerStats.balls || 0) / 6);
+        setCurrentBowlerOvers(Math.floor(totalOvers * 10) / 10); // Round to 1 decimal
+        setShowBowlerChange(true);
+      }
+    }
+  }, [match, currentInnings, battingTeam, checkInningsComplete, checkMatchComplete, checkBowlerChange, showInningsBreak, showMatchEnd, showBowlerChange, bowlerId]);
+
+  // Handle second innings start
+  const handleStartSecondInnings = useCallback(
+    async (openingBatter1Id: string, openingBatter2Id: string, firstBowlerId: string) => {
+      try {
+        const response = await api.startSecondInnings(matchId, {
+          openingBatter1Id,
+          openingBatter2Id,
+          firstBowlerId,
+        });
+
+        setMatch(response.data);
+        setCurrentInnings(2);
+        // @ts-ignore
+        setBattingTeam(response.data.liveState?.battingTeam || 'away');
+        // @ts-ignore
+        setStrikerId(response.data.liveState?.strikerId || '');
+        // @ts-ignore
+        setNonStrikerId(response.data.liveState?.nonStrikerId || '');
+        // @ts-ignore
+        setBowlerId(response.data.liveState?.bowlerId || '');
+        setCurrentOver(0);
+        setCurrentBall(0);
+        setShowInningsBreak(false);
+        success('Second innings started');
+      } catch (error: any) {
+        showError(error.response?.data?.message || 'Failed to start second innings');
+      }
+    },
+    [matchId, success, showError]
+  );
+
+  // Handle match completion
+  const handleMatchComplete = useCallback(
+    async (data: {
+      winner: 'home' | 'away' | 'tie' | 'no_result';
+      margin: string;
+      keyPerformers: Array<{ playerId: string; playerName: string; role: string; performance: string }>;
+      notes: string;
+    }) => {
+      try {
+        const response = await api.completeMatch(matchId, data);
+        setMatch(response.data);
+        setShowMatchEnd(false);
+        success('Match completed and locked');
+        router.push(`/matches/${matchId}`);
+      } catch (error: any) {
+        showError(error.response?.data?.message || 'Failed to complete match');
+      }
+    },
+    [matchId, success, showError, router]
+  );
+
+  // Handle bowler change
+  const handleBowlerChange = useCallback(
+    (newBowlerId: string) => {
+      setBowlerId(newBowlerId);
+      setShowBowlerChange(false);
+      setCurrentBowlerOvers(0);
+      success('Bowler changed');
+    },
+    [success]
+  );
 
   if (authLoading || loading) {
     return (
@@ -417,22 +617,33 @@ export default function LiveScoringPage() {
           </Card>
         )}
 
-        {/* Live Scoring Interface */}
-        <LiveScoringInterface
-          matchId={matchId}
-          battingTeam={battingTeam}
-          strikerId={strikerId}
-          nonStrikerId={nonStrikerId}
-          bowlerId={bowlerId}
-          currentOver={currentOver}
-          currentBall={currentBall}
-          onBallRecorded={recordBall}
-          onUndo={handleUndo}
-          syncStatus={syncStatus}
-        />
+        {/* Live Scoring Interface - Disabled if match is locked */}
+        {/* @ts-ignore */}
+        {!match.isLocked ? (
+          <LiveScoringInterface
+            matchId={matchId}
+            battingTeam={battingTeam}
+            strikerId={strikerId}
+            nonStrikerId={nonStrikerId}
+            bowlerId={bowlerId}
+            currentOver={currentOver}
+            currentBall={currentBall}
+            onBallRecorded={recordBall}
+            onUndo={handleUndo}
+            syncStatus={syncStatus}
+          />
+        ) : (
+          <Card className="p-8 text-center">
+            <p className="text-lg font-semibold text-gray-900 mb-2">Match Completed</p>
+            <p className="text-sm text-gray-600">This match has been locked and cannot be edited.</p>
+            <Button variant="primary" className="mt-4" onClick={() => router.push(`/matches/${matchId}`)}>
+              View Match Details
+            </Button>
+          </Card>
+        )}
 
         {/* Wicket Popup */}
-        {showWicketPopup && pendingWicket && (
+        {showWicketPopup && pendingWicket && match && (
           <WicketPopup
             isOpen={showWicketPopup}
             onClose={() => {
@@ -449,6 +660,87 @@ export default function LiveScoringPage() {
             }
             availablePlayers={availablePlayers}
             availableFielders={availableFielders}
+          />
+        )}
+
+        {/* Innings Break Modal */}
+        {showInningsBreak && match && match.currentScore && (
+          <InningsBreakModal
+            isOpen={showInningsBreak}
+            onClose={() => setShowInningsBreak(false)}
+            onStartSecondInnings={handleStartSecondInnings}
+            firstInningsScore={{
+              runs: match.currentScore[battingTeam].runs,
+              wickets: match.currentScore[battingTeam].wickets,
+              overs: match.currentScore[battingTeam].overs,
+              balls: match.currentScore[battingTeam].balls || 0,
+            }}
+            battingTeam={battingTeam}
+            availableBatters={
+              // @ts-ignore
+              match.matchSetup?.[battingTeam === 'home' ? 'awayPlayingXI' : 'homePlayingXI'] || []
+            }
+            availableBowlers={
+              // @ts-ignore
+              match.matchSetup?.[battingTeam === 'home' ? 'homePlayingXI' : 'awayPlayingXI'] || []
+            }
+            teamName={
+              battingTeam === 'home' ? match.teams.away.name : match.teams.home.name
+            }
+          />
+        )}
+
+        {/* Match End Modal */}
+        {showMatchEnd && match && match.currentScore && (
+          <MatchEndModal
+            isOpen={showMatchEnd}
+            onClose={() => setShowMatchEnd(false)}
+            onComplete={handleMatchComplete}
+            homeScore={{
+              runs: match.currentScore.home.runs,
+              wickets: match.currentScore.home.wickets,
+              overs: match.currentScore.home.overs,
+              balls: match.currentScore.home.balls || 0,
+            }}
+            awayScore={{
+              runs: match.currentScore.away.runs,
+              wickets: match.currentScore.away.wickets,
+              overs: match.currentScore.away.overs,
+              balls: match.currentScore.away.balls || 0,
+            }}
+            homeTeamName={match.teams.home.name}
+            awayTeamName={match.teams.away.name}
+            availablePlayers={
+              // @ts-ignore
+              [
+                // @ts-ignore
+                ...(match.matchSetup?.homePlayingXI || []),
+                // @ts-ignore
+                ...(match.matchSetup?.awayPlayingXI || []),
+              ]
+            }
+          />
+        )}
+
+        {/* Bowler Change Modal */}
+        {showBowlerChange && match && (
+          <BowlerChangeModal
+            isOpen={showBowlerChange}
+            onClose={() => setShowBowlerChange(false)}
+            onConfirm={handleBowlerChange}
+            currentBowlerName={
+              // @ts-ignore
+              match.matchSetup?.[battingTeam === 'home' ? 'awayPlayingXI' : 'homePlayingXI']?.find(
+                (p: any) => p.id === bowlerId
+              )?.name || 'Current Bowler'
+            }
+            availableBowlers={
+              // @ts-ignore
+              match.matchSetup?.[battingTeam === 'home' ? 'awayPlayingXI' : 'homePlayingXI']?.filter(
+                (p: any) => p.id !== bowlerId
+              ) || []
+            }
+            oversBowled={currentBowlerOvers}
           />
         )}
       </div>

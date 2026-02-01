@@ -187,6 +187,35 @@ export const api = {
     );
     return response.data;
   },
+
+  // Second innings
+  async startSecondInnings(
+    matchId: string,
+    data: { openingBatter1Id: string; openingBatter2Id: string; firstBowlerId: string }
+  ): Promise<ApiResponse<CricketMatch>> {
+    const response = await apiClient.post<ApiResponse<CricketMatch>>(
+      `/cricket/local/matches/${matchId}/second-innings`,
+      data
+    );
+    return response.data;
+  },
+
+  // Complete match
+  async completeMatch(
+    matchId: string,
+    data: {
+      winner?: 'home' | 'away' | 'tie' | 'no_result';
+      margin?: string;
+      keyPerformers?: Array<{ playerId: string; playerName: string; role: string; performance: string }>;
+      notes?: string;
+    }
+  ): Promise<ApiResponse<CricketMatch>> {
+    const response = await apiClient.post<ApiResponse<CricketMatch>>(
+      `/cricket/local/matches/${matchId}/complete`,
+      data
+    );
+    return response.data;
+  },
 };
 
 export default apiClient;
