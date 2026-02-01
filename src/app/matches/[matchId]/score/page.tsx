@@ -14,6 +14,11 @@ import WicketPopup, { DismissalType } from '@/components/scoring/WicketPopup';
 import InningsBreakModal from '@/components/scoring/InningsBreakModal';
 import MatchEndModal from '@/components/scoring/MatchEndModal';
 import BowlerChangeModal from '@/components/scoring/BowlerChangeModal';
+import ExtrasPopup from '@/components/scoring/ExtrasPopup';
+import CurrentBattersCard from '@/components/scoring/CurrentBattersCard';
+import CurrentBowlerCard from '@/components/scoring/CurrentBowlerCard';
+import PartnershipCard from '@/components/scoring/PartnershipCard';
+import RunRateCard from '@/components/scoring/RunRateCard';
 import type { CricketMatch } from '@/types';
 import { formatScore } from '@/lib/utils';
 import { Wifi, WifiOff, RotateCcw } from 'lucide-react';
@@ -48,6 +53,9 @@ export default function LiveScoringPage() {
   const [showMatchEnd, setShowMatchEnd] = useState(false);
   const [showBowlerChange, setShowBowlerChange] = useState(false);
   const [currentBowlerOvers, setCurrentBowlerOvers] = useState(0);
+  const [showExtrasPopup, setShowExtrasPopup] = useState(false);
+  const [pendingExtras, setPendingExtras] = useState<{ type: 'wide' | 'no_ball'; runs: number } | null>(null);
+  const [freeHit, setFreeHit] = useState(false);
 
   const { isOnline, queueLength, addToQueue, syncQueue } = useOfflineQueue(matchId);
 
@@ -133,23 +141,13 @@ export default function LiveScoringPage() {
     }
   }, [matchId, router, showError]);
 
-  const recordBall = useCallback(
-    async (runs: number, ballType: string, isWicket: boolean = false) => {
+  const recordBallInternal = useCallback(
+    async (runs: number, ballType: string, isWicket: boolean = false, isFreeHit: boolean = false) => {
       if (!match) return;
 
-      // Check if match is locked
-      // @ts-ignore
-      if (match.isLocked) {
-        showError('Match is locked and cannot be edited');
-        return;
-      }
-
-      // If wicket, show popup first
-      if (isWicket) {
-        setPendingWicket({ runs, ballType });
-        setShowWicketPopup(true);
-        return;
-      }
+      // Auto-detect boundaries
+      const isBoundary = runs === 4;
+      const isSix = runs === 6;
 
       // Record the ball
       const newBall: BallAction = {
@@ -159,44 +157,65 @@ export default function LiveScoringPage() {
         ball: currentBall,
         runs,
         ballType,
-        isWicket: false,
+        isWicket,
         timestamp: new Date(),
       };
 
       // Update local state immediately (optimistic update)
       setBallHistory((prev) => [...prev, newBall]);
 
-      // Update over and ball
+      // Calculate next over and ball
       let nextOver = currentOver;
-      let nextBall = currentBall + 1;
-
-      // Handle extras - wides and no-balls don't count as legal deliveries
+      let nextBall = currentBall;
       let newStrikerId = strikerId;
       let newNonStrikerId = nonStrikerId;
 
-      if (ballType === 'wide' || ballType === 'no_ball') {
-        // Don't increment ball count, but increment runs
-        // Ball count stays same for next delivery
-      } else {
-        // Normal delivery - increment ball
+      // Handle extras - wides and no-balls don't count as legal deliveries
+      const isLegalDelivery = ballType !== 'wide' && ballType !== 'no_ball';
+
+      if (isLegalDelivery) {
+        // Legal delivery - increment ball count
+        nextBall += 1;
+        
+        // Handle strike rotation for runs (only on legal deliveries)
+        // Bye and leg_bye also rotate strike on odd runs
+        if (runs % 2 === 1) {
+          // Odd runs - swap strike
+          [newStrikerId, newNonStrikerId] = [nonStrikerId, strikerId];
+        }
+
+        // Check if over is complete (after 6 legal deliveries)
         if (nextBall >= 6) {
           nextOver += 1;
           nextBall = 0;
-          // Swap strike at end of over
-          [newStrikerId, newNonStrikerId] = [nonStrikerId, strikerId];
+          // End of over - swap strike automatically
+          [newStrikerId, newNonStrikerId] = [newNonStrikerId, newStrikerId];
+        }
+        
+        // Clear free hit if it was used (on any legal delivery)
+        if (isFreeHit) {
+          setFreeHit(false);
+        }
+      } else {
+        // Wide or no-ball - no ball increment, no strike change
+        // But if it's a no-ball, set free hit for next delivery
+        if (ballType === 'no_ball') {
+          setFreeHit(true);
         }
       }
 
-      // Handle strike rotation for runs
-      if (runs % 2 === 1 && ballType !== 'wide' && ballType !== 'no_ball') {
-        // Odd runs - swap strike
-        [newStrikerId, newNonStrikerId] = [newNonStrikerId, newStrikerId];
-      }
-
+      // Update local state
       setCurrentOver(nextOver);
       setCurrentBall(nextBall);
       setStrikerId(newStrikerId);
       setNonStrikerId(newNonStrikerId);
+      
+      // Note: Free hit is cleared above if used, or set if no-ball
+      
+      // Clear free hit if it was used
+      if (isFreeHit && isLegalDelivery) {
+        setFreeHit(false);
+      }
 
       // Sync to backend
       try {
@@ -214,6 +233,9 @@ export default function LiveScoringPage() {
             runs,
             ballType,
             isWicket: false,
+            isBoundary: isBoundary || false,
+            isSix: isSix || false,
+            isFreeHit: isFreeHit || false,
           },
           timestamp: new Date().toISOString(),
         };
@@ -248,7 +270,7 @@ export default function LiveScoringPage() {
               strikerId,
               nonStrikerId,
               bowlerId,
-              delivery: { runs, ballType, isWicket: false },
+              delivery: { runs, ballType, isWicket: false, isBoundary, isSix, isFreeHit },
               timestamp: new Date().toISOString(),
             },
           });
@@ -259,7 +281,56 @@ export default function LiveScoringPage() {
         }
       }
     },
-    [match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, battingTeam, bowlerId, matchId, isOnline, addToQueue, success, showError, loadMatch]
+    [match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, battingTeam, bowlerId, matchId, isOnline, addToQueue, success, showError, loadMatch, freeHit, setFreeHit]
+  );
+
+  // Handle extras popup confirmation
+  const handleExtrasConfirm = useCallback(
+    (additionalRuns: number) => {
+      if (!pendingExtras) return;
+      
+      // Total runs = 1 (base) + additional runs
+      const totalRuns = 1 + additionalRuns;
+      recordBallInternal(totalRuns, pendingExtras.type, false, freeHit);
+      setShowExtrasPopup(false);
+      setPendingExtras(null);
+    },
+    [pendingExtras, recordBallInternal, freeHit]
+  );
+
+  const recordBall = useCallback(
+    async (runs: number, ballType: string, isWicket: boolean = false) => {
+      if (!match) return;
+
+      // Check if match is locked
+      // @ts-ignore
+      if (match.isLocked) {
+        showError('Match is locked and cannot be edited');
+        return;
+      }
+
+      // If wicket, show popup first
+      if (isWicket) {
+        setPendingWicket({ runs, ballType });
+        setShowWicketPopup(true);
+        return;
+      }
+
+      // If wide or no-ball, show popup to get additional runs (e.g., wide 4, no-ball 6)
+      // Bye and leg_bye are recorded immediately as they count as legal deliveries
+      if (ballType === 'wide' || ballType === 'no_ball') {
+        setPendingExtras({ type: ballType, runs: 0 });
+        setShowExtrasPopup(true);
+        return;
+      }
+      
+      // Bye and leg_bye: Record immediately (they're legal deliveries)
+      // The runs value is already passed correctly
+
+      // Record the ball immediately
+      await recordBallInternal(runs, ballType, false, freeHit);
+    },
+    [match, freeHit, showError, recordBallInternal]
   );
 
   const handleWicketConfirm = useCallback(
@@ -290,12 +361,18 @@ export default function LiveScoringPage() {
       setShowWicketPopup(false);
       setPendingWicket(null);
 
-      // Increment ball and wickets
+      // Wicket is a legal delivery - increment ball
       let nextOver = currentOver;
       let nextBall = currentBall + 1;
       if (nextBall >= 6) {
         nextOver += 1;
         nextBall = 0;
+        // End of over - swap strike automatically
+        setStrikerId(nonStrikerId);
+        setNonStrikerId(data.incomingBatterId);
+      } else {
+        // Incoming batter becomes striker
+        setStrikerId(data.incomingBatterId);
       }
       setCurrentOver(nextOver);
       setCurrentBall(nextBall);
@@ -333,6 +410,11 @@ export default function LiveScoringPage() {
         if (isOnline) {
           await api.recordBall(matchId, ballData);
           success('Wicket recorded');
+          
+          // Reload match to get updated stats
+          setTimeout(() => {
+            loadMatch();
+          }, 500);
         } else {
           await addToQueue({
             type: 'recordBall',
@@ -345,7 +427,7 @@ export default function LiveScoringPage() {
         showError('Failed to record wicket');
       }
     },
-    [pendingWicket, match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, bowlerId, battingTeam, matchId, isOnline, addToQueue, success, showError, loadMatch]
+    [pendingWicket, match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, bowlerId, battingTeam, matchId, isOnline, addToQueue, success, showError, loadMatch, nonStrikerId]
   );
 
   const handleUndo = useCallback(async () => {
@@ -613,6 +695,150 @@ export default function LiveScoringPage() {
                   </p>
                 </div>
               </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Current Batters */}
+        {match && strikerId && nonStrikerId && (
+          <CurrentBattersCard
+            striker={
+              // @ts-ignore
+              match.battingStats?.find(
+                (s: any) => s.playerId === strikerId && s.innings === currentInnings && s.team === battingTeam
+              )
+                ? {
+                    // @ts-ignore
+                    ...match.battingStats.find(
+                      (s: any) => s.playerId === strikerId && s.innings === currentInnings && s.team === battingTeam
+                    ),
+                    // @ts-ignore
+                    name: match.matchSetup?.[battingTeam === 'home' ? 'homePlayingXI' : 'awayPlayingXI']?.find(
+                      (p: any) => p.id === strikerId
+                    )?.name || 'Batter',
+                  }
+                : {
+                    id: strikerId,
+                    // @ts-ignore
+                    name: match.matchSetup?.[battingTeam === 'home' ? 'homePlayingXI' : 'awayPlayingXI']?.find(
+                      (p: any) => p.id === strikerId
+                    )?.name || 'Batter',
+                    runs: 0,
+                    balls: 0,
+                    fours: 0,
+                    sixes: 0,
+                    strikeRate: 0,
+                    isOut: false,
+                  }
+            }
+            nonStriker={
+              // @ts-ignore
+              match.battingStats?.find(
+                (s: any) => s.playerId === nonStrikerId && s.innings === currentInnings && s.team === battingTeam
+              )
+                ? {
+                    // @ts-ignore
+                    ...match.battingStats.find(
+                      (s: any) => s.playerId === nonStrikerId && s.innings === currentInnings && s.team === battingTeam
+                    ),
+                    // @ts-ignore
+                    name: match.matchSetup?.[battingTeam === 'home' ? 'homePlayingXI' : 'awayPlayingXI']?.find(
+                      (p: any) => p.id === nonStrikerId
+                    )?.name || 'Batter',
+                  }
+                : {
+                    id: nonStrikerId,
+                    // @ts-ignore
+                    name: match.matchSetup?.[battingTeam === 'home' ? 'homePlayingXI' : 'awayPlayingXI']?.find(
+                      (p: any) => p.id === nonStrikerId
+                    )?.name || 'Batter',
+                    runs: 0,
+                    balls: 0,
+                    fours: 0,
+                    sixes: 0,
+                    strikeRate: 0,
+                    isOut: false,
+                  }
+            }
+            strikerId={strikerId}
+            nonStrikerId={nonStrikerId}
+          />
+        )}
+
+        {/* Current Bowler */}
+        {match && bowlerId && (
+          <CurrentBowlerCard
+            bowler={
+              // @ts-ignore
+              match.bowlingStats?.find(
+                (s: any) => s.playerId === bowlerId && s.innings === currentInnings
+              )
+                ? {
+                    // @ts-ignore
+                    ...match.bowlingStats.find(
+                      (s: any) => s.playerId === bowlerId && s.innings === currentInnings
+                    ),
+                    // @ts-ignore
+                    name: match.matchSetup?.[battingTeam === 'home' ? 'awayPlayingXI' : 'homePlayingXI']?.find(
+                      (p: any) => p.id === bowlerId
+                    )?.name || 'Bowler',
+                  }
+                : {
+                    id: bowlerId,
+                    // @ts-ignore
+                    name: match.matchSetup?.[battingTeam === 'home' ? 'awayPlayingXI' : 'homePlayingXI']?.find(
+                      (p: any) => p.id === bowlerId
+                    )?.name || 'Bowler',
+                    overs: 0,
+                    balls: 0,
+                    runs: 0,
+                    wickets: 0,
+                    economy: 0,
+                  }
+            }
+            bowlerId={bowlerId}
+          />
+        )}
+
+        {/* Partnership and Run Rates */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Partnership */}
+          {match && (
+            // @ts-ignore
+            match.liveState && (
+              <PartnershipCard
+                // @ts-ignore
+                runs={match.liveState.partnershipRuns || 0}
+                // @ts-ignore
+                balls={match.liveState.partnershipBalls || 0}
+              />
+            )
+          )}
+
+          {/* Run Rates */}
+          {match && match.currentScore && (
+            // @ts-ignore
+            match.liveState && (
+              <RunRateCard
+                // @ts-ignore
+                currentRunRate={match.liveState.currentRunRate || 0}
+                // @ts-ignore
+                requiredRunRate={match.liveState.requiredRunRate}
+                // @ts-ignore
+                target={match.liveState.target}
+                currentRuns={match.currentScore[battingTeam].runs}
+                isChase={currentInnings === 2}
+              />
+            )
+          )}
+        </div>
+
+        {/* Free Hit Indicator */}
+        {freeHit && (
+          <Card className="p-3 bg-yellow-100 border-2 border-yellow-400">
+            <div className="text-center">
+              <p className="text-sm font-bold text-yellow-900">🎯 FREE HIT</p>
+              <p className="text-xs text-yellow-700">Next delivery is a free hit</p>
             </div>
           </Card>
         )}

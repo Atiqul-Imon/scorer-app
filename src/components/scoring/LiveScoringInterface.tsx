@@ -45,7 +45,8 @@ export default function LiveScoringInterface({
   const handleExtra = (type: 'wide' | 'no_ball' | 'bye' | 'leg_bye') => {
     if (recording) return;
     setRecording(true);
-    // Extras add 1 run by default (can be modified)
+    // For bye and leg_bye, record immediately (they count as legal deliveries)
+    // For wide and no-ball, popup will ask for additional runs
     onBallRecorded(1, type, false);
     setTimeout(() => setRecording(false), 300);
   };
