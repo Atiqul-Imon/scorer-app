@@ -31,3 +31,5 @@ export default function PartnershipCard({ runs, balls }: PartnershipCardProps) {
   );
 }
 
+
+

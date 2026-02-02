@@ -52,3 +52,5 @@ export default function CurrentBowlerCard({ bowler, bowlerId }: CurrentBowlerCar
   );
 }
 
+
+
