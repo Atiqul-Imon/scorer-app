@@ -17,7 +17,7 @@ interface LiveScoringInterfaceProps {
   currentBall: number;
   onBallRecorded: (runs: number, ballType: string, isWicket?: boolean) => void;
   onUndo: () => void;
-  syncStatus: 'synced' | 'syncing' | 'offline' | 'error';
+  syncStatus: 'synced' | 'syncing' | 'error';
 }
 
 export default function LiveScoringInterface({
@@ -60,8 +60,7 @@ export default function LiveScoringInterface({
   const syncStatusConfig = {
     synced: { icon: Wifi, color: 'text-green-600', bg: 'bg-green-50', label: 'Synced' },
     syncing: { icon: Wifi, color: 'text-yellow-600', bg: 'bg-yellow-50', label: 'Syncing...' },
-    offline: { icon: WifiOff, color: 'text-gray-600', bg: 'bg-gray-50', label: 'Offline' },
-    error: { icon: WifiOff, color: 'text-red-600', bg: 'bg-red-50', label: 'Sync Error' },
+    error: { icon: WifiOff, color: 'text-red-600', bg: 'bg-red-50', label: 'Error' },
   };
 
   const status = syncStatusConfig[syncStatus];

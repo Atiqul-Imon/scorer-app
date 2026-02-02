@@ -149,9 +149,18 @@ export const useOfflineQueue = (matchId: string) => {
               try {
                 await syncFn(action);
                 await removeFromQueue(action.id);
-              } catch (error) {
+              } catch (error: any) {
                 console.error(`Failed to sync action ${action.id}:`, error);
-                // Increment retries
+                
+                // Don't retry validation errors (400) or server errors (500)
+                const status = error?.response?.status;
+                if (status === 400 || status === 500) {
+                  console.error(`Validation/Server error (${status}) - removing from queue without retry`);
+                  await removeFromQueue(action.id);
+                  continue; // Skip to next action
+                }
+                
+                // Increment retries for other errors
                 action.retries += 1;
                 if (action.retries >= 3) {
                   // Remove after 3 retries

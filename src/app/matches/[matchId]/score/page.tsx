@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -26,7 +26,6 @@ import EditMatchSetupModal from '@/components/scoring/EditMatchSetupModal';
 import type { CricketMatch } from '@/types';
 import { formatScore } from '@/lib/utils';
 import { Wifi, WifiOff, RotateCcw, Settings, Edit, Users, Target } from 'lucide-react';
-import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 
 interface BallAction {
   id: string;
@@ -49,7 +48,7 @@ export default function LiveScoringPage() {
 
   const [match, setMatch] = useState<CricketMatch | null>(null);
   const [loading, setLoading] = useState(true);
-  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'offline' | 'error'>('synced');
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error'>('synced');
   const [ballHistory, setBallHistory] = useState<BallAction[]>([]);
   const [showWicketPopup, setShowWicketPopup] = useState(false);
   const [pendingWicket, setPendingWicket] = useState<{ runs: number; ballType: string } | null>(null);
@@ -66,7 +65,7 @@ export default function LiveScoringPage() {
   const [showEditSetup, setShowEditSetup] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
-  const { isOnline, queueLength, addToQueue, syncQueue } = useOfflineQueue(matchId);
+  // Removed offline queue to simplify - direct API calls only
 
   // Match state
   const [currentInnings, setCurrentInnings] = useState(1);
@@ -88,50 +87,7 @@ export default function LiveScoringPage() {
     }
   }, [isAuthenticated, authLoading, matchId, router]);
 
-  // Sync offline queue when coming online (with debounce to prevent recursion)
-  const [isSyncingQueue, setIsSyncingQueue] = useState(false);
-  const syncQueueRef = useRef(false); // Prevent multiple simultaneous syncs
-  
-  useEffect(() => {
-    if (isOnline && queueLength > 0 && !isSyncingQueue && !syncQueueRef.current) {
-      syncQueueRef.current = true;
-      setIsSyncingQueue(true);
-      
-      syncQueue(async (action) => {
-        try {
-          if (action.type === 'recordBall') {
-            await api.recordBall(matchId, action.data);
-          } else if (action.type === 'undoBall') {
-            await api.undoLastBall(matchId);
-          }
-        } catch (error: any) {
-          // Don't re-queue if it's a server error (500) - likely a backend issue
-          if (error?.response?.status === 500) {
-            console.error('Server error during sync, will not retry:', error);
-            throw error; // This will be caught by syncQueue and removed after retries
-          }
-          throw error;
-        }
-      }).finally(() => {
-        // Add a delay before allowing next sync to prevent rapid recursion
-        setTimeout(() => {
-          setIsSyncingQueue(false);
-          syncQueueRef.current = false;
-        }, 2000); // 2 second cooldown
-      });
-    }
-  }, [isOnline, queueLength, matchId, syncQueue, isSyncingQueue]);
-
-  // Update sync status based on online/offline
-  useEffect(() => {
-    if (!isOnline) {
-      setSyncStatus('offline');
-    } else if (queueLength > 0) {
-      setSyncStatus('syncing');
-    } else {
-      setSyncStatus('synced');
-    }
-  }, [isOnline, queueLength]);
+  // Simple sync status - just track if API call is in progress
 
   const loadMatch = useCallback(async () => {
     try {
@@ -307,9 +263,21 @@ export default function LiveScoringPage() {
         setFreeHit(false);
       }
 
-      // Sync to backend - use updated state values (nextOver, nextBall, etc.)
+      // Sync to backend - direct API call (no offline queue)
       try {
         setSyncStatus('syncing');
+        
+        // Validate required fields before making API call
+        if (!strikerId || strikerId.trim() === '') {
+          throw new Error('Striker ID is required. Please complete match setup.');
+        }
+        if (!nonStrikerId || nonStrikerId.trim() === '') {
+          throw new Error('Non-striker ID is required. Please complete match setup.');
+        }
+        if (!bowlerId || bowlerId.trim() === '') {
+          throw new Error('Bowler ID is required. Please complete match setup.');
+        }
+        
         const ballData = {
           matchId,
           innings: currentInnings,
@@ -329,146 +297,98 @@ export default function LiveScoringPage() {
           },
           timestamp: new Date().toISOString(),
         };
-
-        if (isOnline) {
-          try {
-            console.log('Recording ball:', { matchId, ballData });
-            
-            // Make API call directly (axios already has timeout configured)
-            const response = await api.recordBall(matchId, ballData);
-            
-            console.log('Ball recorded successfully:', response);
-            console.log('Response structure:', {
-              hasData: !!response?.data,
-              hasSuccess: response?.success,
-              dataType: typeof response?.data,
-              dataKeys: response?.data ? Object.keys(response.data) : [],
-            });
-            
-            // api.recordBall returns response.data which is { success: true, data: match }
-            // So response is { success: true, data: match }
-            // response.data is the match object
-            const matchData = response?.data;
-            
-            console.log('Response check:', {
-              responseType: typeof response,
-              hasResponse: !!response,
-              hasResponseData: !!response?.data,
-              responseKeys: response ? Object.keys(response) : [],
-              matchDataType: typeof matchData,
-              matchDataKeys: matchData ? Object.keys(matchData) : [],
-              hasCurrentScore: !!matchData?.currentScore,
-              currentScoreValue: matchData?.currentScore,
-            });
-            
-            if (matchData && matchData.currentScore) {
-              console.log('Updating match with backend data:', {
-                currentScore: matchData.currentScore,
-                battingTeamScore: matchData.currentScore[battingTeam],
-                // @ts-ignore
-                liveState: matchData.liveState,
-              });
-              
-              // Replace entire match object with backend response (source of truth)
-              // This ensures we have the latest score from backend
-              setMatch(matchData);
-              
-              // Update local state from liveState
-              // @ts-ignore
-              if (matchData.liveState) {
-                // @ts-ignore
-                if (matchData.liveState.currentInnings !== undefined) {
-                  // @ts-ignore
-                  setCurrentInnings(matchData.liveState.currentInnings);
-                }
-                // @ts-ignore
-                if (matchData.liveState.battingTeam) {
-                  // @ts-ignore
-                  setBattingTeam(matchData.liveState.battingTeam);
-                }
-                // @ts-ignore
-                if (matchData.liveState.strikerId) {
-                  // @ts-ignore
-                  setStrikerId(matchData.liveState.strikerId);
-                }
-                // @ts-ignore
-                if (matchData.liveState.nonStrikerId) {
-                  // @ts-ignore
-                  setNonStrikerId(matchData.liveState.nonStrikerId);
-                }
-                // @ts-ignore
-                if (matchData.liveState.bowlerId) {
-                  // @ts-ignore
-                  setBowlerId(matchData.liveState.bowlerId);
-                }
-                // @ts-ignore
-                if (matchData.liveState.currentOver !== undefined) {
-                  // @ts-ignore
-                  setCurrentOver(matchData.liveState.currentOver);
-                }
-                // @ts-ignore
-                if (matchData.liveState.currentBall !== undefined) {
-                  // @ts-ignore
-                  setCurrentBall(matchData.liveState.currentBall);
-                }
-              }
-              
-              // Update sync status only after successful update
-              setSyncStatus('synced');
-              success('Ball recorded');
-            } else {
-              console.warn('No valid match data in response, reloading...', {
-                hasMatchData: !!matchData,
-                hasCurrentScore: !!matchData?.currentScore,
-                responseKeys: Object.keys(response || {}),
-              });
-              // If response doesn't have valid data, reload match
-              setSyncStatus('synced'); // Still mark as synced to clear the syncing state
-              setTimeout(() => {
-                loadMatch();
-              }, 500);
-            }
-          } catch (apiError: any) {
-            console.error('API error recording ball:', apiError);
-            console.error('Error details:', {
-              message: apiError?.message,
-              response: apiError?.response?.data,
-              status: apiError?.response?.status,
-              statusText: apiError?.response?.statusText,
-            });
-            
-            // Don't add to offline queue if it's a server error (500) - likely backend issue
-            // Only add to queue for network errors or client errors (4xx except 500)
-            const status = apiError?.response?.status;
-            if (status === 500) {
-              // Server error - don't retry, just show error
-              setSyncStatus('error');
-              showError('Server error. Please try again or contact support.');
-              return; // Exit early, don't add to queue
-            }
-            
-            // If API fails with other errors, try to save offline
-            throw apiError; // Re-throw to be caught by outer catch
-          }
-        } else {
-          // Save to offline queue
-          await addToQueue({
-            type: 'recordBall',
-            matchId,
-            data: ballData,
+        
+        console.log('Recording ball:', { matchId, ballData });
+        
+        // Make API call directly
+        const response = await api.recordBall(matchId, ballData);
+        
+        console.log('Ball recorded successfully:', response);
+        
+        // api.recordBall returns response.data which is { success: true, data: match }
+        // So response is { success: true, data: match }
+        // response.data is the match object
+        const matchData = response?.data;
+        
+        if (matchData && matchData.currentScore) {
+          console.log('Updating match with backend data:', {
+            currentScore: matchData.currentScore,
+            battingTeamScore: matchData.currentScore[battingTeam],
+            // @ts-ignore
+            liveState: matchData.liveState,
           });
-          setSyncStatus('offline');
-          success('Ball saved offline');
+          
+          // Replace entire match object with backend response (source of truth)
+          setMatch(matchData);
+          
+          // Update local state from liveState
+          // @ts-ignore
+          if (matchData.liveState) {
+            // @ts-ignore
+            if (matchData.liveState.currentInnings !== undefined) {
+              // @ts-ignore
+              setCurrentInnings(matchData.liveState.currentInnings);
+            }
+            // @ts-ignore
+            if (matchData.liveState.battingTeam) {
+              // @ts-ignore
+              setBattingTeam(matchData.liveState.battingTeam);
+            }
+            // @ts-ignore
+            if (matchData.liveState.strikerId) {
+              // @ts-ignore
+              setStrikerId(matchData.liveState.strikerId);
+            }
+            // @ts-ignore
+            if (matchData.liveState.nonStrikerId) {
+              // @ts-ignore
+              setNonStrikerId(matchData.liveState.nonStrikerId);
+            }
+            // @ts-ignore
+            if (matchData.liveState.bowlerId) {
+              // @ts-ignore
+              setBowlerId(matchData.liveState.bowlerId);
+            }
+            // @ts-ignore
+            if (matchData.liveState.currentOver !== undefined) {
+              // @ts-ignore
+              setCurrentOver(matchData.liveState.currentOver);
+            }
+            // @ts-ignore
+            if (matchData.liveState.currentBall !== undefined) {
+              // @ts-ignore
+              setCurrentBall(matchData.liveState.currentBall);
+            }
+          }
+          
+          // Update sync status only after successful update
+          setSyncStatus('synced');
+          success('Ball recorded');
+        } else {
+          console.warn('No valid match data in response, reloading...', {
+            hasMatchData: !!matchData,
+            hasCurrentScore: !!matchData?.currentScore,
+            responseKeys: Object.keys(response || {}),
+          });
+          // If response doesn't have valid data, reload match
+          setSyncStatus('synced'); // Still mark as synced to clear the syncing state
+          setTimeout(() => {
+            loadMatch();
+          }, 500);
         }
       } catch (error: any) {
         console.error('Error recording ball:', error);
-        console.error('Error stack:', error?.stack);
-        console.error('Error response:', error?.response);
+        console.error('Error details:', {
+          message: error?.message,
+          response: error?.response?.data,
+          status: error?.response?.status,
+          statusText: error?.response?.statusText,
+        });
         
         setSyncStatus('error');
         
         // Show detailed error message
-        const errorMessage = error?.response?.data?.message || error?.message || 'Failed to save ball';
+        const errorMessage = error?.response?.data?.message || error?.message || 'Failed to record ball';
         console.error('Error message:', errorMessage);
         
         // If it's a validation error about missing setup, redirect to setup
@@ -480,42 +400,11 @@ export default function LiveScoringPage() {
           return;
         }
         
-        // Don't add to offline queue if it's a server error (500) - prevents recursion
-        const status = error?.response?.status;
-        if (status === 500) {
-          // Server error - don't retry, just show error
-          setSyncStatus('error');
-          showError('Server error. Please try again or contact support.');
-          return; // Exit early, don't add to queue
-        }
-        
-        // Try to save offline as fallback (only for network errors or client errors)
-        try {
-          await addToQueue({
-            type: 'recordBall',
-            matchId,
-            data: {
-              matchId,
-              innings: currentInnings,
-              battingTeam,
-              over: currentOver,
-              ball: currentBall,
-              strikerId,
-              nonStrikerId,
-              bowlerId,
-              delivery: { runs, ballType, isWicket: false, isBoundary, isSix, isFreeHit },
-              timestamp: new Date().toISOString(),
-            },
-          });
-          setSyncStatus('offline');
-          success('Ball saved offline');
-        } catch (offlineError) {
-          console.error('Failed to save ball offline:', offlineError);
-          showError(errorMessage);
-        }
+        // Show error to user
+        showError(errorMessage);
       }
     },
-    [match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, battingTeam, bowlerId, matchId, isOnline, addToQueue, success, showError, loadMatch, freeHit, setFreeHit]
+    [match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, battingTeam, bowlerId, matchId, success, showError, loadMatch, freeHit, setFreeHit, router]
   );
 
   // Handle extras popup confirmation
@@ -622,11 +511,9 @@ export default function LiveScoringPage() {
       setCurrentBall(nextBall);
 
       // Reload match to get updated stats (for completion detection)
-      if (isOnline) {
-        setTimeout(() => {
-          loadMatch();
-        }, 500);
-      }
+      setTimeout(() => {
+        loadMatch();
+      }, 500);
 
       // Sync to backend
       try {
@@ -651,57 +538,44 @@ export default function LiveScoringPage() {
           timestamp: new Date().toISOString(),
         };
 
-        if (isOnline) {
-          try {
-            const response = await api.recordBall(matchId, ballData);
-            success('Wicket recorded');
-            
-            // Update match state from response
-            if (response.data) {
-              setMatch((prev) => {
-                if (!prev) return prev;
-                return {
-                  ...prev,
-                  currentScore: response.data.currentScore || prev.currentScore,
-                  // @ts-ignore
-                  liveState: response.data.liveState || prev.liveState,
-                  // @ts-ignore
-                  battingStats: response.data.battingStats || prev.battingStats,
-                  // @ts-ignore
-                  bowlingStats: response.data.bowlingStats || prev.bowlingStats,
-                };
-              });
-            }
-            
-            // Reload match after a short delay
-            setTimeout(() => {
-              loadMatch();
-            }, 300);
-          } catch (apiError: any) {
-            console.error('API error recording wicket:', apiError);
-            // If API fails, try to save offline
-            await addToQueue({
-              type: 'recordBall',
-              matchId,
-              data: ballData,
-            });
-            setSyncStatus('offline');
-            success('Wicket saved offline');
+        // Sync to backend - direct API call
+        setSyncStatus('syncing');
+        const response = await api.recordBall(matchId, ballData);
+        success('Wicket recorded');
+        
+        // Update match state from response
+        if (response.data) {
+          setMatch(response.data);
+          // @ts-ignore
+          if (response.data.liveState) {
+            // @ts-ignore
+            setCurrentInnings(response.data.liveState.currentInnings || currentInnings);
+            // @ts-ignore
+            setBattingTeam(response.data.liveState.battingTeam || battingTeam);
+            // @ts-ignore
+            setStrikerId(response.data.liveState.strikerId || strikerId);
+            // @ts-ignore
+            setNonStrikerId(response.data.liveState.nonStrikerId || nonStrikerId);
+            // @ts-ignore
+            setBowlerId(response.data.liveState.bowlerId || bowlerId);
+            // @ts-ignore
+            setCurrentOver(response.data.liveState.currentOver ?? currentOver);
+            // @ts-ignore
+            setCurrentBall(response.data.liveState.currentBall ?? currentBall);
           }
-        } else {
-          await addToQueue({
-            type: 'recordBall',
-            matchId,
-            data: ballData,
-          });
-          success('Wicket saved offline');
         }
+        
+        setSyncStatus('synced');
+        // Reload match after a short delay
+        setTimeout(() => {
+          loadMatch();
+        }, 300);
       } catch (error: any) {
         console.error('Error recording wicket:', error);
         showError(error?.response?.data?.message || error?.message || 'Failed to record wicket');
       }
     },
-    [pendingWicket, match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, bowlerId, battingTeam, matchId, isOnline, addToQueue, success, showError, loadMatch, nonStrikerId]
+    [pendingWicket, match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, bowlerId, battingTeam, matchId, success, showError, loadMatch]
   );
 
   const handleUndo = useCallback(async () => {
@@ -727,26 +601,20 @@ export default function LiveScoringPage() {
       setCurrentBall(Math.max(0, lastBall.ball - 1));
     }
 
-    // Sync undo to backend
+    // Sync undo to backend - direct API call
     try {
-      if (isOnline) {
-        await api.undoLastBall(matchId);
-        success('Last ball undone');
-        // Reload match to get updated state
-        await loadMatch();
-      } else {
-        await addToQueue({
-          type: 'undoBall',
-          matchId,
-          data: {},
-        });
-        success('Undo saved offline');
-      }
+      setSyncStatus('syncing');
+      await api.undoLastBall(matchId);
+      success('Last ball undone');
+      setSyncStatus('synced');
+      // Reload match to get updated state
+      await loadMatch();
     } catch (error: any) {
       console.error('Error undoing ball:', error);
+      setSyncStatus('error');
       showError(error?.response?.data?.message || error?.message || 'Failed to undo ball');
     }
-  }, [ballHistory, currentOver, matchId, isOnline, addToQueue, success, showError, match, showError]);
+  }, [ballHistory, currentOver, matchId, success, showError, match, loadMatch]);
 
   // Get max overs based on format
   const getMaxOvers = useCallback(() => {
