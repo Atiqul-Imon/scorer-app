@@ -92,14 +92,25 @@ export default function MatchSetupPage() {
   };
 
   const handlePlayerNameEdit = (team: 'home' | 'away', playerId: string, newName: string) => {
+    const trimmedName = newName.trim();
     if (team === 'home') {
       setHomePlayers((prev) =>
-        prev.map((p) => (p.id === playerId ? { ...p, name: newName.trim() } : p))
+        prev.map((p) => (p.id === playerId ? { ...p, name: trimmedName } : p))
       );
+      // Also update in playing XI if player is selected
+      setSetupState((prev) => ({
+        ...prev,
+        homePlayingXI: prev.homePlayingXI.map((p) => (p.id === playerId ? { ...p, name: trimmedName } : p)),
+      }));
     } else {
       setAwayPlayers((prev) =>
-        prev.map((p) => (p.id === playerId ? { ...p, name: newName.trim() } : p))
+        prev.map((p) => (p.id === playerId ? { ...p, name: trimmedName } : p))
       );
+      // Also update in playing XI if player is selected
+      setSetupState((prev) => ({
+        ...prev,
+        awayPlayingXI: prev.awayPlayingXI.map((p) => (p.id === playerId ? { ...p, name: trimmedName } : p)),
+      }));
     }
     setEditingPlayer(null);
     setNewPlayerName('');
@@ -567,7 +578,18 @@ export default function MatchSetupPage() {
               </div>
             </Card>
 
-            <Button variant="primary" size="lg" fullWidth onClick={handleNext} disabled={setupState.homePlayingXI.length !== 11 || setupState.awayPlayingXI.length !== 11}>
+            <Button 
+              variant="primary" 
+              size="lg" 
+              fullWidth 
+              onClick={handleNext} 
+              disabled={
+                setupState.homePlayingXI.length !== 11 || 
+                setupState.awayPlayingXI.length !== 11 ||
+                setupState.homePlayingXI.some((p) => !p?.name || typeof p.name !== 'string' || !p.name.trim()) ||
+                setupState.awayPlayingXI.some((p) => !p?.name || typeof p.name !== 'string' || !p.name.trim())
+              }
+            >
               Next: Toss
             </Button>
           </div>
