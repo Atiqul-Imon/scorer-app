@@ -164,6 +164,41 @@ export default function LiveScoringPage() {
       // Update local state immediately (optimistic update)
       setBallHistory((prev) => [...prev, newBall]);
 
+      // Update match score optimistically
+      setMatch((prev) => {
+        if (!prev || !prev.currentScore) return prev;
+        const updatedScore = { ...prev.currentScore };
+        const battingScore = { ...updatedScore[battingTeam] };
+        
+        // Add runs
+        battingScore.runs += runs;
+        
+        // Handle wickets
+        if (isWicket) {
+          battingScore.wickets += 1;
+        }
+        
+        // Update over/ball for legal deliveries
+        const isLegalDelivery = ballType !== 'wide' && ballType !== 'no_ball';
+        if (isLegalDelivery) {
+          const nextBall = currentBall + 1;
+          if (nextBall >= 6) {
+            battingScore.overs = currentOver + 1;
+            battingScore.balls = 0;
+          } else {
+            battingScore.overs = currentOver;
+            battingScore.balls = nextBall;
+          }
+        }
+        
+        updatedScore[battingTeam] = battingScore;
+        
+        return {
+          ...prev,
+          currentScore: updatedScore,
+        };
+      });
+
       // Calculate next over and ball
       let nextOver = currentOver;
       let nextBall = currentBall;
@@ -217,17 +252,17 @@ export default function LiveScoringPage() {
         setFreeHit(false);
       }
 
-      // Sync to backend
+      // Sync to backend - use updated state values (nextOver, nextBall, etc.)
       try {
         setSyncStatus('syncing');
         const ballData = {
           matchId,
           innings: currentInnings,
           battingTeam,
-          over: currentOver,
-          ball: currentBall,
-          strikerId,
-          nonStrikerId,
+          over: currentOver, // Use current over (before increment)
+          ball: currentBall, // Use current ball (before increment)
+          strikerId, // Use current striker (before rotation)
+          nonStrikerId, // Use current non-striker (before rotation)
           bowlerId,
           delivery: {
             runs,
@@ -241,9 +276,37 @@ export default function LiveScoringPage() {
         };
 
         if (isOnline) {
-          await api.recordBall(matchId, ballData);
-          setSyncStatus('synced');
-          success('Ball recorded');
+          try {
+            const response = await api.recordBall(matchId, ballData);
+            setSyncStatus('synced');
+            success('Ball recorded');
+            
+            // Update match state from response (optimistic update)
+            if (response.data) {
+              setMatch((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  currentScore: response.data.currentScore || prev.currentScore,
+                  // @ts-ignore
+                  liveState: response.data.liveState || prev.liveState,
+                  // @ts-ignore
+                  battingStats: response.data.battingStats || prev.battingStats,
+                  // @ts-ignore
+                  bowlingStats: response.data.bowlingStats || prev.bowlingStats,
+                };
+              });
+            }
+            
+            // Reload match after a short delay to ensure backend has processed
+            setTimeout(() => {
+              loadMatch();
+            }, 300);
+          } catch (apiError: any) {
+            console.error('API error recording ball:', apiError);
+            // If API fails, try to save offline
+            throw apiError; // Re-throw to be caught by outer catch
+          }
         } else {
           // Save to offline queue
           await addToQueue({
@@ -254,9 +317,10 @@ export default function LiveScoringPage() {
           setSyncStatus('offline');
           success('Ball saved offline');
         }
-      } catch (error) {
+      } catch (error: any) {
+        console.error('Error recording ball:', error);
         setSyncStatus('error');
-        // Try to save offline
+        // Try to save offline as fallback
         try {
           await addToQueue({
             type: 'recordBall',
@@ -277,7 +341,8 @@ export default function LiveScoringPage() {
           setSyncStatus('offline');
           success('Ball saved offline');
         } catch (offlineError) {
-          showError('Failed to save ball');
+          console.error('Failed to save ball offline:', offlineError);
+          showError(error?.response?.data?.message || error?.message || 'Failed to save ball');
         }
       }
     },
@@ -408,13 +473,42 @@ export default function LiveScoringPage() {
         };
 
         if (isOnline) {
-          await api.recordBall(matchId, ballData);
-          success('Wicket recorded');
-          
-          // Reload match to get updated stats
-          setTimeout(() => {
-            loadMatch();
-          }, 500);
+          try {
+            const response = await api.recordBall(matchId, ballData);
+            success('Wicket recorded');
+            
+            // Update match state from response
+            if (response.data) {
+              setMatch((prev) => {
+                if (!prev) return prev;
+                return {
+                  ...prev,
+                  currentScore: response.data.currentScore || prev.currentScore,
+                  // @ts-ignore
+                  liveState: response.data.liveState || prev.liveState,
+                  // @ts-ignore
+                  battingStats: response.data.battingStats || prev.battingStats,
+                  // @ts-ignore
+                  bowlingStats: response.data.bowlingStats || prev.bowlingStats,
+                };
+              });
+            }
+            
+            // Reload match after a short delay
+            setTimeout(() => {
+              loadMatch();
+            }, 300);
+          } catch (apiError: any) {
+            console.error('API error recording wicket:', apiError);
+            // If API fails, try to save offline
+            await addToQueue({
+              type: 'recordBall',
+              matchId,
+              data: ballData,
+            });
+            setSyncStatus('offline');
+            success('Wicket saved offline');
+          }
         } else {
           await addToQueue({
             type: 'recordBall',
@@ -423,8 +517,9 @@ export default function LiveScoringPage() {
           });
           success('Wicket saved offline');
         }
-      } catch (error) {
-        showError('Failed to record wicket');
+      } catch (error: any) {
+        console.error('Error recording wicket:', error);
+        showError(error?.response?.data?.message || error?.message || 'Failed to record wicket');
       }
     },
     [pendingWicket, match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, bowlerId, battingTeam, matchId, isOnline, addToQueue, success, showError, loadMatch, nonStrikerId]
@@ -458,6 +553,8 @@ export default function LiveScoringPage() {
       if (isOnline) {
         await api.undoLastBall(matchId);
         success('Last ball undone');
+        // Reload match to get updated state
+        await loadMatch();
       } else {
         await addToQueue({
           type: 'undoBall',
@@ -466,8 +563,9 @@ export default function LiveScoringPage() {
         });
         success('Undo saved offline');
       }
-    } catch (error) {
-      showError('Failed to undo ball');
+    } catch (error: any) {
+      console.error('Error undoing ball:', error);
+      showError(error?.response?.data?.message || error?.message || 'Failed to undo ball');
     }
   }, [ballHistory, currentOver, matchId, isOnline, addToQueue, success, showError, match, showError]);
 
