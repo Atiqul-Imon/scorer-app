@@ -125,7 +125,9 @@ export const api = {
   },
 
   async getMatch(matchId: string): Promise<ApiResponse<CricketMatch>> {
-    const response = await apiClient.get<ApiResponse<CricketMatch>>(`/cricket/local/matches/${matchId}`);
+    // Use scorer endpoint to get match (includes unverified matches for the scorer)
+    // This allows scorers to access their own matches regardless of verification status
+    const response = await apiClient.get<ApiResponse<CricketMatch>>(`/scorer/matches/${matchId}`);
     return response.data;
   },
 
