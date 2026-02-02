@@ -94,23 +94,55 @@ export default function MatchSetupPage() {
   const handlePlayerNameEdit = (team: 'home' | 'away', playerId: string, newName: string) => {
     const trimmedName = newName.trim();
     if (team === 'home') {
-      setHomePlayers((prev) =>
-        prev.map((p) => (p.id === playerId ? { ...p, name: trimmedName } : p))
-      );
-      // Also update in playing XI if player is selected
-      setSetupState((prev) => ({
-        ...prev,
-        homePlayingXI: prev.homePlayingXI.map((p) => (p.id === playerId ? { ...p, name: trimmedName } : p)),
-      }));
+      setHomePlayers((prev) => {
+        const updated = prev.map((p) => (p.id === playerId ? { ...p, name: trimmedName } : p));
+        // Auto-add to playing XI if not already selected and has a name
+        if (trimmedName) {
+          setSetupState((prevState) => {
+            const isAlreadySelected = prevState.homePlayingXI.some((p) => p.id === playerId);
+            if (!isAlreadySelected && prevState.homePlayingXI.length < 11) {
+              const player = updated.find((p) => p.id === playerId);
+              if (player) {
+                return {
+                  ...prevState,
+                  homePlayingXI: [...prevState.homePlayingXI, player],
+                };
+              }
+            }
+            // Update name if already selected
+            return {
+              ...prevState,
+              homePlayingXI: prevState.homePlayingXI.map((p) => (p.id === playerId ? { ...p, name: trimmedName } : p)),
+            };
+          });
+        }
+        return updated;
+      });
     } else {
-      setAwayPlayers((prev) =>
-        prev.map((p) => (p.id === playerId ? { ...p, name: trimmedName } : p))
-      );
-      // Also update in playing XI if player is selected
-      setSetupState((prev) => ({
-        ...prev,
-        awayPlayingXI: prev.awayPlayingXI.map((p) => (p.id === playerId ? { ...p, name: trimmedName } : p)),
-      }));
+      setAwayPlayers((prev) => {
+        const updated = prev.map((p) => (p.id === playerId ? { ...p, name: trimmedName } : p));
+        // Auto-add to playing XI if not already selected and has a name
+        if (trimmedName) {
+          setSetupState((prevState) => {
+            const isAlreadySelected = prevState.awayPlayingXI.some((p) => p.id === playerId);
+            if (!isAlreadySelected && prevState.awayPlayingXI.length < 11) {
+              const player = updated.find((p) => p.id === playerId);
+              if (player) {
+                return {
+                  ...prevState,
+                  awayPlayingXI: [...prevState.awayPlayingXI, player],
+                };
+              }
+            }
+            // Update name if already selected
+            return {
+              ...prevState,
+              awayPlayingXI: prevState.awayPlayingXI.map((p) => (p.id === playerId ? { ...p, name: trimmedName } : p)),
+            };
+          });
+        }
+        return updated;
+      });
     }
     setEditingPlayer(null);
     setNewPlayerName('');
@@ -169,33 +201,20 @@ export default function MatchSetupPage() {
 
   const handleNext = () => {
     if (setupState.step === 'teams') {
-      // Check that all selected players have names
-      const homePlayersWithNames = setupState.homePlayingXI.filter((p) => p.name.trim());
-      const awayPlayersWithNames = setupState.awayPlayingXI.filter((p) => p.name.trim());
-      
-      if (homePlayersWithNames.length !== 11 || awayPlayersWithNames.length !== 11) {
-        showError('Please select exactly 11 players with names for each team');
-        return;
-      }
-      
-      // Ensure all selected players have names
-      if (setupState.homePlayingXI.some((p) => !p.name.trim()) || setupState.awayPlayingXI.some((p) => !p.name.trim())) {
+      // Allow proceeding with any number of players - scorer can add more later
+      // Just ensure selected players have names
+      const hasInvalidPlayers = setupState.homePlayingXI.some((p) => !p?.name || !p.name.trim()) || 
+                                 setupState.awayPlayingXI.some((p) => !p?.name || !p.name.trim());
+      if (hasInvalidPlayers) {
         showError('All selected players must have names');
         return;
       }
-      
       setSetupState((prev) => ({ ...prev, step: 'toss' }));
     } else if (setupState.step === 'toss') {
-      if (!setupState.tossWinner || !setupState.tossDecision) {
-        showError('Please select toss winner and decision');
-        return;
-      }
+      // Allow skipping toss - can be set later
       setSetupState((prev) => ({ ...prev, step: 'openers' }));
     } else if (setupState.step === 'openers') {
-      if (!setupState.openingBatter1Id || !setupState.openingBatter2Id) {
-        showError('Please select both opening batters');
-        return;
-      }
+      // Allow skipping opening batters - can be set later
       setSetupState((prev) => ({ ...prev, step: 'bowler' }));
     }
   };
@@ -211,28 +230,34 @@ export default function MatchSetupPage() {
   };
 
   const handleComplete = async () => {
-    if (!setupState.firstBowlerId) {
-      showError('Please select first bowler');
-      return;
-    }
-
+    // Allow completing with minimal data - scorer can update later
     setSaving(true);
     try {
-      const setupData = {
+      const setupData: any = {
         matchId,
-        homePlayingXI: setupState.homePlayingXI,
-        awayPlayingXI: setupState.awayPlayingXI,
-        toss: {
-          winner: setupState.tossWinner!,
-          decision: setupState.tossDecision!,
-        },
-        openingBatter1Id: setupState.openingBatter1Id!,
-        openingBatter2Id: setupState.openingBatter2Id!,
-        firstBowlerId: setupState.firstBowlerId,
+        homePlayingXI: setupState.homePlayingXI || [],
+        awayPlayingXI: setupState.awayPlayingXI || [],
       };
 
+      // Only include optional fields if they're set
+      if (setupState.tossWinner && setupState.tossDecision) {
+        setupData.toss = {
+          winner: setupState.tossWinner,
+          decision: setupState.tossDecision,
+        };
+      }
+
+      if (setupState.openingBatter1Id && setupState.openingBatter2Id) {
+        setupData.openingBatter1Id = setupState.openingBatter1Id;
+        setupData.openingBatter2Id = setupState.openingBatter2Id;
+      }
+
+      if (setupState.firstBowlerId) {
+        setupData.firstBowlerId = setupState.firstBowlerId;
+      }
+
       await api.completeMatchSetup(matchId, setupData);
-      success('Match setup completed!');
+      success('Match setup completed! You can update details later if needed.');
       router.push(`/matches/${matchId}/score`);
     } catch (error: any) {
       showError(error.response?.data?.message || 'Failed to complete setup');
@@ -451,7 +476,7 @@ export default function MatchSetupPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-base font-semibold text-gray-900">
-                    {match.teams.away.name} ({setupState.awayPlayingXI.length}/11)
+                    {match.teams.away.name} ({setupState.awayPlayingXI.length} selected)
                   </h3>
                   <button
                     onClick={() => {
@@ -584,8 +609,7 @@ export default function MatchSetupPage() {
               fullWidth 
               onClick={handleNext} 
               disabled={
-                setupState.homePlayingXI.length !== 11 || 
-                setupState.awayPlayingXI.length !== 11 ||
+                // Only disable if selected players have invalid names
                 setupState.homePlayingXI.some((p) => !p?.name || typeof p.name !== 'string' || !p.name.trim()) ||
                 setupState.awayPlayingXI.some((p) => !p?.name || typeof p.name !== 'string' || !p.name.trim())
               }
@@ -599,10 +623,13 @@ export default function MatchSetupPage() {
         {setupState.step === 'toss' && (
           <div className="space-y-4">
             <Card className="p-4">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
                 <Trophy className="w-5 h-5" />
                 Toss Result
               </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Record the toss result (optional - can be updated later)
+              </p>
 
               <div className="space-y-4">
                 <div>
@@ -669,8 +696,8 @@ export default function MatchSetupPage() {
               <Button variant="outline" size="lg" fullWidth onClick={handleBack}>
                 Back
               </Button>
-              <Button variant="primary" size="lg" fullWidth onClick={handleNext} disabled={!setupState.tossWinner || !setupState.tossDecision}>
-                Next: Opening Batters
+              <Button variant="primary" size="lg" fullWidth onClick={handleNext}>
+                Next: Opening Batters {setupState.tossWinner && setupState.tossDecision ? '' : '(Optional)'}
               </Button>
             </div>
           </div>
@@ -731,8 +758,8 @@ export default function MatchSetupPage() {
               <Button variant="outline" size="lg" fullWidth onClick={handleBack}>
                 Back
               </Button>
-              <Button variant="primary" size="lg" fullWidth onClick={handleNext} disabled={!setupState.openingBatter1Id || !setupState.openingBatter2Id}>
-                Next: First Bowler
+              <Button variant="primary" size="lg" fullWidth onClick={handleNext}>
+                Next: First Bowler {setupState.openingBatter1Id && setupState.openingBatter2Id ? '' : '(Optional)'}
               </Button>
             </div>
           </div>
@@ -742,12 +769,12 @@ export default function MatchSetupPage() {
         {setupState.step === 'bowler' && (
           <div className="space-y-4">
             <Card className="p-4">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
                 <UserPlus className="w-5 h-5" />
                 Select First Bowler
               </h2>
               <p className="text-sm text-gray-600 mb-4">
-                {battingTeam === 'home' ? match.teams.away.name : match.teams.home.name} will bowl first
+                {battingTeam === 'home' ? match.teams.away.name : match.teams.home.name} will bowl first (optional - can be set later)
               </p>
 
               <div>
@@ -771,8 +798,8 @@ export default function MatchSetupPage() {
               <Button variant="outline" size="lg" fullWidth onClick={handleBack}>
                 Back
               </Button>
-              <Button variant="primary" size="lg" fullWidth onClick={handleComplete} disabled={!setupState.firstBowlerId || saving}>
-                {saving ? 'Completing...' : 'Complete Setup'}
+              <Button variant="primary" size="lg" fullWidth onClick={handleComplete} disabled={saving}>
+                {saving ? 'Completing...' : 'Start Scoring'}
               </Button>
             </div>
           </div>
