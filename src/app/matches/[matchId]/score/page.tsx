@@ -114,8 +114,18 @@ export default function LiveScoringPage() {
 
   const loadMatch = useCallback(async () => {
     try {
+      setLoading(true);
+      console.log('Loading match:', matchId);
       const response = await api.getMatch(matchId);
       const matchData = response.data;
+      
+      console.log('Match loaded:', {
+        matchId: matchData?.matchId,
+        currentScore: matchData?.currentScore,
+        // @ts-ignore
+        liveState: matchData?.liveState,
+      });
+      
       setMatch(matchData);
 
       // Initialize match state from match data
@@ -135,6 +145,15 @@ export default function LiveScoringPage() {
         setCurrentOver(matchData.liveState.currentOver || 0);
         // @ts-ignore
         setCurrentBall(matchData.liveState.currentBall || 0);
+      } else {
+        // If no liveState, initialize with defaults
+        setCurrentInnings(1);
+        setBattingTeam('home');
+        setStrikerId('');
+        setNonStrikerId('');
+        setBowlerId('');
+        setCurrentOver(0);
+        setCurrentBall(0);
       }
 
       // Check if setup is complete
@@ -144,6 +163,12 @@ export default function LiveScoringPage() {
         return;
       }
     } catch (error: any) {
+      console.error('Error loading match:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+      });
       showError(error.response?.data?.message || 'Failed to load match');
     } finally {
       setLoading(false);
@@ -288,13 +313,8 @@ export default function LiveScoringPage() {
           try {
             console.log('Recording ball:', { matchId, ballData });
             
-            // Add timeout to prevent hanging
-            const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error('Request timeout - API call took too long')), 10000);
-            });
-            
-            const apiPromise = api.recordBall(matchId, ballData);
-            const response = await Promise.race([apiPromise, timeoutPromise]) as any;
+            // Make API call directly (axios already has timeout configured)
+            const response = await api.recordBall(matchId, ballData);
             
             console.log('Ball recorded successfully:', response);
             console.log('Response structure:', {
@@ -303,9 +323,6 @@ export default function LiveScoringPage() {
               dataType: typeof response?.data,
               dataKeys: response?.data ? Object.keys(response.data) : [],
             });
-            
-            setSyncStatus('synced');
-            success('Ball recorded');
             
             // api.recordBall returns response.data which is { success: true, data: match }
             // So response is { success: true, data: match }
@@ -316,7 +333,6 @@ export default function LiveScoringPage() {
               responseType: typeof response,
               hasResponse: !!response,
               hasResponseData: !!response?.data,
-              hasResponseDataData: !!response?.data?.data,
               responseKeys: response ? Object.keys(response) : [],
               matchDataType: typeof matchData,
               matchDataKeys: matchData ? Object.keys(matchData) : [],
@@ -324,67 +340,69 @@ export default function LiveScoringPage() {
               currentScoreValue: matchData?.currentScore,
             });
             
-            // Try both response.data.data and response.data (for compatibility)
-            const finalMatchData = response?.data?.data || response?.data;
-            
-            if (finalMatchData && finalMatchData.currentScore) {
+            if (matchData && matchData.currentScore) {
               console.log('Updating match with backend data:', {
-                currentScore: finalMatchData.currentScore,
-                battingTeamScore: finalMatchData.currentScore[battingTeam],
+                currentScore: matchData.currentScore,
+                battingTeamScore: matchData.currentScore[battingTeam],
                 // @ts-ignore
-                liveState: finalMatchData.liveState,
+                liveState: matchData.liveState,
               });
               
               // Replace entire match object with backend response (source of truth)
               // This ensures we have the latest score from backend
-              setMatch(finalMatchData);
+              setMatch(matchData);
               
               // Update local state from liveState
               // @ts-ignore
-              if (finalMatchData.liveState) {
+              if (matchData.liveState) {
                 // @ts-ignore
-                if (finalMatchData.liveState.currentInnings !== undefined) {
+                if (matchData.liveState.currentInnings !== undefined) {
                   // @ts-ignore
-                  setCurrentInnings(finalMatchData.liveState.currentInnings);
+                  setCurrentInnings(matchData.liveState.currentInnings);
                 }
                 // @ts-ignore
-                if (finalMatchData.liveState.battingTeam) {
+                if (matchData.liveState.battingTeam) {
                   // @ts-ignore
-                  setBattingTeam(finalMatchData.liveState.battingTeam);
+                  setBattingTeam(matchData.liveState.battingTeam);
                 }
                 // @ts-ignore
-                if (finalMatchData.liveState.strikerId) {
+                if (matchData.liveState.strikerId) {
                   // @ts-ignore
-                  setStrikerId(finalMatchData.liveState.strikerId);
+                  setStrikerId(matchData.liveState.strikerId);
                 }
                 // @ts-ignore
-                if (finalMatchData.liveState.nonStrikerId) {
+                if (matchData.liveState.nonStrikerId) {
                   // @ts-ignore
-                  setNonStrikerId(finalMatchData.liveState.nonStrikerId);
+                  setNonStrikerId(matchData.liveState.nonStrikerId);
                 }
                 // @ts-ignore
-                if (finalMatchData.liveState.bowlerId) {
+                if (matchData.liveState.bowlerId) {
                   // @ts-ignore
-                  setBowlerId(finalMatchData.liveState.bowlerId);
+                  setBowlerId(matchData.liveState.bowlerId);
                 }
                 // @ts-ignore
-                if (finalMatchData.liveState.currentOver !== undefined) {
+                if (matchData.liveState.currentOver !== undefined) {
                   // @ts-ignore
-                  setCurrentOver(finalMatchData.liveState.currentOver);
+                  setCurrentOver(matchData.liveState.currentOver);
                 }
                 // @ts-ignore
-                if (finalMatchData.liveState.currentBall !== undefined) {
+                if (matchData.liveState.currentBall !== undefined) {
                   // @ts-ignore
-                  setCurrentBall(finalMatchData.liveState.currentBall);
+                  setCurrentBall(matchData.liveState.currentBall);
                 }
               }
+              
+              // Update sync status only after successful update
+              setSyncStatus('synced');
+              success('Ball recorded');
             } else {
               console.warn('No valid match data in response, reloading...', {
-                hasFinalMatchData: !!finalMatchData,
-                hasCurrentScore: !!finalMatchData?.currentScore,
+                hasMatchData: !!matchData,
+                hasCurrentScore: !!matchData?.currentScore,
                 responseKeys: Object.keys(response || {}),
               });
               // If response doesn't have valid data, reload match
+              setSyncStatus('synced'); // Still mark as synced to clear the syncing state
               setTimeout(() => {
                 loadMatch();
               }, 500);
@@ -395,6 +413,7 @@ export default function LiveScoringPage() {
               message: apiError?.message,
               response: apiError?.response?.data,
               status: apiError?.response?.status,
+              statusText: apiError?.response?.statusText,
             });
             // If API fails, try to save offline
             throw apiError; // Re-throw to be caught by outer catch
