@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
@@ -88,18 +88,39 @@ export default function LiveScoringPage() {
     }
   }, [isAuthenticated, authLoading, matchId, router]);
 
-  // Sync offline queue when coming online
+  // Sync offline queue when coming online (with debounce to prevent recursion)
+  const [isSyncingQueue, setIsSyncingQueue] = useState(false);
+  const syncQueueRef = useRef(false); // Prevent multiple simultaneous syncs
+  
   useEffect(() => {
-    if (isOnline && queueLength > 0) {
+    if (isOnline && queueLength > 0 && !isSyncingQueue && !syncQueueRef.current) {
+      syncQueueRef.current = true;
+      setIsSyncingQueue(true);
+      
       syncQueue(async (action) => {
-        if (action.type === 'recordBall') {
-          await api.recordBall(matchId, action.data);
-        } else if (action.type === 'undoBall') {
-          await api.undoLastBall(matchId);
+        try {
+          if (action.type === 'recordBall') {
+            await api.recordBall(matchId, action.data);
+          } else if (action.type === 'undoBall') {
+            await api.undoLastBall(matchId);
+          }
+        } catch (error: any) {
+          // Don't re-queue if it's a server error (500) - likely a backend issue
+          if (error?.response?.status === 500) {
+            console.error('Server error during sync, will not retry:', error);
+            throw error; // This will be caught by syncQueue and removed after retries
+          }
+          throw error;
         }
+      }).finally(() => {
+        // Add a delay before allowing next sync to prevent rapid recursion
+        setTimeout(() => {
+          setIsSyncingQueue(false);
+          syncQueueRef.current = false;
+        }, 2000); // 2 second cooldown
       });
     }
-  }, [isOnline, queueLength, matchId, syncQueue]);
+  }, [isOnline, queueLength, matchId, syncQueue, isSyncingQueue]);
 
   // Update sync status based on online/offline
   useEffect(() => {
@@ -415,7 +436,18 @@ export default function LiveScoringPage() {
               status: apiError?.response?.status,
               statusText: apiError?.response?.statusText,
             });
-            // If API fails, try to save offline
+            
+            // Don't add to offline queue if it's a server error (500) - likely backend issue
+            // Only add to queue for network errors or client errors (4xx except 500)
+            const status = apiError?.response?.status;
+            if (status === 500) {
+              // Server error - don't retry, just show error
+              setSyncStatus('error');
+              showError('Server error. Please try again or contact support.');
+              return; // Exit early, don't add to queue
+            }
+            
+            // If API fails with other errors, try to save offline
             throw apiError; // Re-throw to be caught by outer catch
           }
         } else {
@@ -448,7 +480,16 @@ export default function LiveScoringPage() {
           return;
         }
         
-        // Try to save offline as fallback
+        // Don't add to offline queue if it's a server error (500) - prevents recursion
+        const status = error?.response?.status;
+        if (status === 500) {
+          // Server error - don't retry, just show error
+          setSyncStatus('error');
+          showError('Server error. Please try again or contact support.');
+          return; // Exit early, don't add to queue
+        }
+        
+        // Try to save offline as fallback (only for network errors or client errors)
         try {
           await addToQueue({
             type: 'recordBall',
