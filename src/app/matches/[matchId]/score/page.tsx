@@ -297,30 +297,98 @@ export default function LiveScoringPage() {
             const response = await Promise.race([apiPromise, timeoutPromise]) as any;
             
             console.log('Ball recorded successfully:', response);
+            console.log('Response structure:', {
+              hasData: !!response?.data,
+              hasSuccess: response?.success,
+              dataType: typeof response?.data,
+              dataKeys: response?.data ? Object.keys(response.data) : [],
+            });
+            
             setSyncStatus('synced');
             success('Ball recorded');
             
-            // Update match state from response (optimistic update)
-            if (response?.data) {
-              setMatch((prev) => {
-                if (!prev) return prev;
-                return {
-                  ...prev,
-                  currentScore: response.data.currentScore || prev.currentScore,
-                  // @ts-ignore
-                  liveState: response.data.liveState || prev.liveState,
-                  // @ts-ignore
-                  battingStats: response.data.battingStats || prev.battingStats,
-                  // @ts-ignore
-                  bowlingStats: response.data.bowlingStats || prev.bowlingStats,
-                };
-              });
-            }
+            // api.recordBall returns response.data which is { success: true, data: match }
+            // So response is { success: true, data: match }
+            // response.data is the match object
+            const matchData = response?.data;
             
-            // Reload match after a short delay to ensure backend has processed
-            setTimeout(() => {
-              loadMatch();
-            }, 300);
+            console.log('Response check:', {
+              responseType: typeof response,
+              hasResponse: !!response,
+              hasResponseData: !!response?.data,
+              hasResponseDataData: !!response?.data?.data,
+              responseKeys: response ? Object.keys(response) : [],
+              matchDataType: typeof matchData,
+              matchDataKeys: matchData ? Object.keys(matchData) : [],
+              hasCurrentScore: !!matchData?.currentScore,
+              currentScoreValue: matchData?.currentScore,
+            });
+            
+            // Try both response.data.data and response.data (for compatibility)
+            const finalMatchData = response?.data?.data || response?.data;
+            
+            if (finalMatchData && finalMatchData.currentScore) {
+              console.log('Updating match with backend data:', {
+                currentScore: finalMatchData.currentScore,
+                battingTeamScore: finalMatchData.currentScore[battingTeam],
+                // @ts-ignore
+                liveState: finalMatchData.liveState,
+              });
+              
+              // Replace entire match object with backend response (source of truth)
+              // This ensures we have the latest score from backend
+              setMatch(finalMatchData);
+              
+              // Update local state from liveState
+              // @ts-ignore
+              if (finalMatchData.liveState) {
+                // @ts-ignore
+                if (finalMatchData.liveState.currentInnings !== undefined) {
+                  // @ts-ignore
+                  setCurrentInnings(finalMatchData.liveState.currentInnings);
+                }
+                // @ts-ignore
+                if (finalMatchData.liveState.battingTeam) {
+                  // @ts-ignore
+                  setBattingTeam(finalMatchData.liveState.battingTeam);
+                }
+                // @ts-ignore
+                if (finalMatchData.liveState.strikerId) {
+                  // @ts-ignore
+                  setStrikerId(finalMatchData.liveState.strikerId);
+                }
+                // @ts-ignore
+                if (finalMatchData.liveState.nonStrikerId) {
+                  // @ts-ignore
+                  setNonStrikerId(finalMatchData.liveState.nonStrikerId);
+                }
+                // @ts-ignore
+                if (finalMatchData.liveState.bowlerId) {
+                  // @ts-ignore
+                  setBowlerId(finalMatchData.liveState.bowlerId);
+                }
+                // @ts-ignore
+                if (finalMatchData.liveState.currentOver !== undefined) {
+                  // @ts-ignore
+                  setCurrentOver(finalMatchData.liveState.currentOver);
+                }
+                // @ts-ignore
+                if (finalMatchData.liveState.currentBall !== undefined) {
+                  // @ts-ignore
+                  setCurrentBall(finalMatchData.liveState.currentBall);
+                }
+              }
+            } else {
+              console.warn('No valid match data in response, reloading...', {
+                hasFinalMatchData: !!finalMatchData,
+                hasCurrentScore: !!finalMatchData?.currentScore,
+                responseKeys: Object.keys(response || {}),
+              });
+              // If response doesn't have valid data, reload match
+              setTimeout(() => {
+                loadMatch();
+              }, 500);
+            }
           } catch (apiError: any) {
             console.error('API error recording ball:', apiError);
             console.error('Error details:', {
