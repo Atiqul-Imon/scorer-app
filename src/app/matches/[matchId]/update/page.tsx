@@ -83,6 +83,22 @@ export default function UpdateScorePage() {
 
       setMatch(matchData);
 
+      // Check if match has been set up for ball-by-ball scoring
+      // @ts-ignore - matchSetup may not be in type yet
+      if (matchData.matchSetup?.isSetupComplete) {
+        // Match is set up - redirect to live scoring page
+        router.replace(`/matches/${matchId}/score`);
+        return;
+      }
+
+      // Match not set up yet - check if it's a local match
+      if (matchId.startsWith('LOCAL-')) {
+        // For local matches, redirect to setup first
+        router.replace(`/matches/${matchId}/setup`);
+        return;
+      }
+
+      // For non-local matches or if setup check fails, use manual update
       // Initialize score from current match data
       if (matchData.currentScore) {
         setScore({

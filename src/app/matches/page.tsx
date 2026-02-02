@@ -187,10 +187,19 @@ function MatchesContent() {
                         fullWidth
                         onClick={(e) => {
                           e.preventDefault();
-                          router.push(`/matches/${match.matchId}/update`);
+                          // Check if match is set up for ball-by-ball scoring
+                          // @ts-ignore
+                          if (match.matchSetup?.isSetupComplete) {
+                            router.push(`/matches/${match.matchId}/score`);
+                          } else if (match.matchId.startsWith('LOCAL-')) {
+                            router.push(`/matches/${match.matchId}/setup`);
+                          } else {
+                            router.push(`/matches/${match.matchId}/update`);
+                          }
                         }}
                       >
-                        Update Score
+                        {/* @ts-ignore */}
+                        {match.matchSetup?.isSetupComplete ? 'Live Score' : match.matchId.startsWith('LOCAL-') ? 'Setup Match' : 'Update Score'}
                       </Button>
                     </div>
                   )}

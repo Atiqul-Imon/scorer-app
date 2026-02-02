@@ -104,12 +104,32 @@ export default function MatchDetailsPage() {
 
   const isLive = match.status === 'live';
   const isCompleted = match.status === 'completed';
+  
+  // Determine which page to link to based on match setup
+  // @ts-ignore - matchSetup may not be in type yet
+  const isSetupComplete = match.matchSetup?.isSetupComplete;
+  const isLocalMatch = matchId.startsWith('LOCAL-');
+  
+  const getScorePageUrl = () => {
+    if (isLocalMatch && !isSetupComplete) {
+      return `/matches/${matchId}/setup`;
+    } else if (isLocalMatch && isSetupComplete) {
+      return `/matches/${matchId}/score`;
+    } else {
+      return `/matches/${matchId}/update`;
+    }
+  };
 
   const headerActions = isLive ? (
-    <Link href={`/matches/${matchId}/update`}>
+    <Link href={getScorePageUrl()}>
       <Button variant="primary" size="sm" className="flex items-center gap-1.5 touch-target">
         <Edit2 className="w-4 h-4" />
-        <span className="hidden sm:inline">Update</span>
+        <span className="hidden sm:inline">
+          {isLocalMatch && !isSetupComplete ? 'Setup' : isLocalMatch && isSetupComplete ? 'Score' : 'Update'}
+        </span>
+        <span className="sm:hidden">
+          {isLocalMatch && !isSetupComplete ? 'Setup' : isLocalMatch && isSetupComplete ? 'Score' : 'Update'}
+        </span>
       </Button>
     </Link>
   ) : null;

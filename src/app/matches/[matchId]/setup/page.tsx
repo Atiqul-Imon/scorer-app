@@ -11,7 +11,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Badge from '@/components/ui/Badge';
 import type { CricketMatch } from '@/types';
-import { Check, X, Users, Trophy, UserPlus } from 'lucide-react';
+import { Check, X, Users, Trophy, UserPlus, Edit2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Player {
@@ -50,6 +50,9 @@ export default function MatchSetupPage() {
   // Temporary player lists (in real app, these would come from team rosters)
   const [homePlayers, setHomePlayers] = useState<Player[]>([]);
   const [awayPlayers, setAwayPlayers] = useState<Player[]>([]);
+  const [editingPlayer, setEditingPlayer] = useState<{ team: 'home' | 'away'; playerId: string } | null>(null);
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [showAddPlayer, setShowAddPlayer] = useState<{ team: 'home' | 'away' } | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -68,34 +71,19 @@ export default function MatchSetupPage() {
       const matchData = response.data;
       setMatch(matchData);
 
-      // Initialize player lists from team names (simplified - in real app, fetch from roster)
-      setHomePlayers([
-        { id: 'h1', name: `${matchData.teams.home.name} Player 1` },
-        { id: 'h2', name: `${matchData.teams.home.name} Player 2` },
-        { id: 'h3', name: `${matchData.teams.home.name} Player 3` },
-        { id: 'h4', name: `${matchData.teams.home.name} Player 4` },
-        { id: 'h5', name: `${matchData.teams.home.name} Player 5` },
-        { id: 'h6', name: `${matchData.teams.home.name} Player 6` },
-        { id: 'h7', name: `${matchData.teams.home.name} Player 7` },
-        { id: 'h8', name: `${matchData.teams.home.name} Player 8` },
-        { id: 'h9', name: `${matchData.teams.home.name} Player 9` },
-        { id: 'h10', name: `${matchData.teams.home.name} Player 10` },
-        { id: 'h11', name: `${matchData.teams.home.name} Player 11` },
-      ]);
-
-      setAwayPlayers([
-        { id: 'a1', name: `${matchData.teams.away.name} Player 1` },
-        { id: 'a2', name: `${matchData.teams.away.name} Player 2` },
-        { id: 'a3', name: `${matchData.teams.away.name} Player 3` },
-        { id: 'a4', name: `${matchData.teams.away.name} Player 4` },
-        { id: 'a5', name: `${matchData.teams.away.name} Player 5` },
-        { id: 'a6', name: `${matchData.teams.away.name} Player 6` },
-        { id: 'a7', name: `${matchData.teams.away.name} Player 7` },
-        { id: 'a8', name: `${matchData.teams.away.name} Player 8` },
-        { id: 'a9', name: `${matchData.teams.away.name} Player 9` },
-        { id: 'a10', name: `${matchData.teams.away.name} Player 10` },
-        { id: 'a11', name: `${matchData.teams.away.name} Player 11` },
-      ]);
+      // Initialize player lists - start with empty, user will add players
+      // Minimum 11 slots, but user can add more
+      const initialHomePlayers: Player[] = Array.from({ length: 11 }, (_, i) => ({
+        id: `h${i + 1}`,
+        name: '',
+      }));
+      const initialAwayPlayers: Player[] = Array.from({ length: 11 }, (_, i) => ({
+        id: `a${i + 1}`,
+        name: '',
+      }));
+      
+      setHomePlayers(initialHomePlayers);
+      setAwayPlayers(initialAwayPlayers);
     } catch (error: any) {
       showError(error.response?.data?.message || 'Failed to load match');
     } finally {
@@ -103,7 +91,48 @@ export default function MatchSetupPage() {
     }
   };
 
+  const handlePlayerNameEdit = (team: 'home' | 'away', playerId: string, newName: string) => {
+    if (team === 'home') {
+      setHomePlayers((prev) =>
+        prev.map((p) => (p.id === playerId ? { ...p, name: newName.trim() } : p))
+      );
+    } else {
+      setAwayPlayers((prev) =>
+        prev.map((p) => (p.id === playerId ? { ...p, name: newName.trim() } : p))
+      );
+    }
+    setEditingPlayer(null);
+    setNewPlayerName('');
+  };
+
+  const handleAddPlayer = (team: 'home' | 'away') => {
+    if (!newPlayerName.trim()) {
+      showError('Please enter player name');
+      return;
+    }
+    
+    const newId = team === 'home' ? `h${homePlayers.length + 1}` : `a${awayPlayers.length + 1}`;
+    const newPlayer: Player = { id: newId, name: newPlayerName.trim() };
+    
+    if (team === 'home') {
+      setHomePlayers((prev) => [...prev, newPlayer]);
+    } else {
+      setAwayPlayers((prev) => [...prev, newPlayer]);
+    }
+    
+    setNewPlayerName('');
+    setShowAddPlayer(null);
+  };
+
   const handlePlayerToggle = (team: 'home' | 'away', playerId: string) => {
+    const player = (team === 'home' ? homePlayers : awayPlayers).find((p) => p.id === playerId);
+    if (!player || !player.name.trim()) {
+      // If player has no name, start editing
+      setEditingPlayer({ team, playerId });
+      setNewPlayerName(player?.name || '');
+      return;
+    }
+
     setSetupState((prev) => {
       const teamKey = team === 'home' ? 'homePlayingXI' : 'awayPlayingXI';
       const currentXI = prev[teamKey];
@@ -119,24 +148,31 @@ export default function MatchSetupPage() {
           showError('Maximum 11 players allowed');
           return prev;
         }
-        const player = (team === 'home' ? homePlayers : awayPlayers).find((p) => p.id === playerId);
-        if (player) {
-          return {
-            ...prev,
-            [teamKey]: [...currentXI, player],
-          };
-        }
+        return {
+          ...prev,
+          [teamKey]: [...currentXI, player],
+        };
       }
-      return prev;
     });
   };
 
   const handleNext = () => {
     if (setupState.step === 'teams') {
-      if (setupState.homePlayingXI.length !== 11 || setupState.awayPlayingXI.length !== 11) {
-        showError('Please select exactly 11 players for each team');
+      // Check that all selected players have names
+      const homePlayersWithNames = setupState.homePlayingXI.filter((p) => p.name.trim());
+      const awayPlayersWithNames = setupState.awayPlayingXI.filter((p) => p.name.trim());
+      
+      if (homePlayersWithNames.length !== 11 || awayPlayersWithNames.length !== 11) {
+        showError('Please select exactly 11 players with names for each team');
         return;
       }
+      
+      // Ensure all selected players have names
+      if (setupState.homePlayingXI.some((p) => !p.name.trim()) || setupState.awayPlayingXI.some((p) => !p.name.trim())) {
+        showError('All selected players must have names');
+        return;
+      }
+      
       setSetupState((prev) => ({ ...prev, step: 'toss' }));
     } else if (setupState.step === 'toss') {
       if (!setupState.tossWinner || !setupState.tossDecision) {
@@ -272,60 +308,262 @@ export default function MatchSetupPage() {
 
               {/* Home Team */}
               <div className="mb-6">
-                <h3 className="text-base font-semibold text-gray-900 mb-3">
-                  {match.teams.home.name} ({setupState.homePlayingXI.length}/11)
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-semibold text-gray-900">
+                    {match.teams.home.name} ({setupState.homePlayingXI.length}/11)
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowAddPlayer({ team: 'home' });
+                      setNewPlayerName('');
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary-600 hover:bg-primary-50 rounded touch-target"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Player
+                  </button>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {homePlayers.map((player) => {
                     const isSelected = setupState.homePlayingXI.some((p) => p.id === player.id);
+                    const isEditing = editingPlayer?.team === 'home' && editingPlayer?.playerId === player.id;
+                    
+                    if (isEditing) {
+                      return (
+                        <div key={player.id} className="p-2 border-2 border-primary-600 rounded-lg bg-primary-50">
+                          <Input
+                            value={newPlayerName}
+                            onChange={(e) => setNewPlayerName(e.target.value)}
+                            placeholder="Enter player name"
+                            className="text-sm mb-2"
+                            autoFocus
+                          />
+                          <div className="flex gap-1">
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => handlePlayerNameEdit('home', player.id, newPlayerName)}
+                              className="flex-1 text-xs"
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingPlayer(null);
+                                setNewPlayerName('');
+                              }}
+                              className="flex-1 text-xs"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
                     return (
                       <button
                         key={player.id}
                         onClick={() => handlePlayerToggle('home', player.id)}
                         className={cn(
-                          'p-3 rounded-lg border-2 text-left transition-all touch-target',
+                          'p-3 rounded-lg border-2 text-left transition-all touch-target relative',
                           isSelected
                             ? 'border-primary-600 bg-primary-50 text-primary-900'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                            : player.name
+                            ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                            : 'border-dashed border-gray-300 bg-gray-50 text-gray-400',
                         )}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{player.name}</span>
-                          {isSelected && <Check className="w-4 h-4 text-primary-600" />}
+                          <span className="text-sm font-medium">
+                            {player.name || 'Tap to add player'}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {player.name && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingPlayer({ team: 'home', playerId: player.id });
+                                  setNewPlayerName(player.name);
+                                }}
+                                className="p-1 hover:bg-primary-100 rounded"
+                              >
+                                <Edit2 className="w-3 h-3 text-primary-600" />
+                              </button>
+                            )}
+                            {isSelected && <Check className="w-4 h-4 text-primary-600" />}
+                          </div>
                         </div>
                       </button>
                     );
                   })}
                 </div>
+                
+                {/* Add Player Input */}
+                {showAddPlayer?.team === 'home' && (
+                  <div className="mt-2 p-3 border-2 border-primary-600 rounded-lg bg-primary-50">
+                    <Input
+                      value={newPlayerName}
+                      onChange={(e) => setNewPlayerName(e.target.value)}
+                      placeholder="Enter player name"
+                      className="text-sm mb-2"
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleAddPlayer('home')}
+                        className="flex-1 text-xs"
+                      >
+                        Add
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddPlayer(null);
+                          setNewPlayerName('');
+                        }}
+                        className="flex-1 text-xs"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Away Team */}
               <div>
-                <h3 className="text-base font-semibold text-gray-900 mb-3">
-                  {match.teams.away.name} ({setupState.awayPlayingXI.length}/11)
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-base font-semibold text-gray-900">
+                    {match.teams.away.name} ({setupState.awayPlayingXI.length}/11)
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowAddPlayer({ team: 'away' });
+                      setNewPlayerName('');
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary-600 hover:bg-primary-50 rounded touch-target"
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add Player
+                  </button>
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   {awayPlayers.map((player) => {
                     const isSelected = setupState.awayPlayingXI.some((p) => p.id === player.id);
+                    const isEditing = editingPlayer?.team === 'away' && editingPlayer?.playerId === player.id;
+                    
+                    if (isEditing) {
+                      return (
+                        <div key={player.id} className="p-2 border-2 border-primary-600 rounded-lg bg-primary-50">
+                          <Input
+                            value={newPlayerName}
+                            onChange={(e) => setNewPlayerName(e.target.value)}
+                            placeholder="Enter player name"
+                            className="text-sm mb-2"
+                            autoFocus
+                          />
+                          <div className="flex gap-1">
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              onClick={() => handlePlayerNameEdit('away', player.id, newPlayerName)}
+                              className="flex-1 text-xs"
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingPlayer(null);
+                                setNewPlayerName('');
+                              }}
+                              className="flex-1 text-xs"
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
                     return (
                       <button
                         key={player.id}
                         onClick={() => handlePlayerToggle('away', player.id)}
                         className={cn(
-                          'p-3 rounded-lg border-2 text-left transition-all touch-target',
+                          'p-3 rounded-lg border-2 text-left transition-all touch-target relative',
                           isSelected
                             ? 'border-primary-600 bg-primary-50 text-primary-900'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                            : player.name
+                            ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                            : 'border-dashed border-gray-300 bg-gray-50 text-gray-400',
                         )}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{player.name}</span>
-                          {isSelected && <Check className="w-4 h-4 text-primary-600" />}
+                          <span className="text-sm font-medium">
+                            {player.name || 'Tap to add player'}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {player.name && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingPlayer({ team: 'away', playerId: player.id });
+                                  setNewPlayerName(player.name);
+                                }}
+                                className="p-1 hover:bg-primary-100 rounded"
+                              >
+                                <Edit2 className="w-3 h-3 text-primary-600" />
+                              </button>
+                            )}
+                            {isSelected && <Check className="w-4 h-4 text-primary-600" />}
+                          </div>
                         </div>
                       </button>
                     );
                   })}
                 </div>
+                
+                {/* Add Player Input */}
+                {showAddPlayer?.team === 'away' && (
+                  <div className="mt-2 p-3 border-2 border-primary-600 rounded-lg bg-primary-50">
+                    <Input
+                      value={newPlayerName}
+                      onChange={(e) => setNewPlayerName(e.target.value)}
+                      placeholder="Enter player name"
+                      className="text-sm mb-2"
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => handleAddPlayer('away')}
+                        className="flex-1 text-xs"
+                      >
+                        Add
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowAddPlayer(null);
+                          setNewPlayerName('');
+                        }}
+                        className="flex-1 text-xs"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
 
