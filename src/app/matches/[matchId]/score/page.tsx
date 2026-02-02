@@ -19,9 +19,13 @@ import CurrentBattersCard from '@/components/scoring/CurrentBattersCard';
 import CurrentBowlerCard from '@/components/scoring/CurrentBowlerCard';
 import PartnershipCard from '@/components/scoring/PartnershipCard';
 import RunRateCard from '@/components/scoring/RunRateCard';
+import ManualScoreModal from '@/components/scoring/ManualScoreModal';
+import PlayerManagementModal from '@/components/scoring/PlayerManagementModal';
+import ChangePlayersModal from '@/components/scoring/ChangePlayersModal';
+import EditMatchSetupModal from '@/components/scoring/EditMatchSetupModal';
 import type { CricketMatch } from '@/types';
 import { formatScore } from '@/lib/utils';
-import { Wifi, WifiOff, RotateCcw } from 'lucide-react';
+import { Wifi, WifiOff, RotateCcw, Settings, Edit, Users, Target } from 'lucide-react';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 
 interface BallAction {
@@ -56,6 +60,11 @@ export default function LiveScoringPage() {
   const [showExtrasPopup, setShowExtrasPopup] = useState(false);
   const [pendingExtras, setPendingExtras] = useState<{ type: 'wide' | 'no_ball'; runs: number } | null>(null);
   const [freeHit, setFreeHit] = useState(false);
+  const [showManualScore, setShowManualScore] = useState(false);
+  const [showPlayerManagement, setShowPlayerManagement] = useState(false);
+  const [showChangePlayers, setShowChangePlayers] = useState(false);
+  const [showEditSetup, setShowEditSetup] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
   const { isOnline, queueLength, addToQueue, syncQueue } = useOfflineQueue(matchId);
 
@@ -277,12 +286,22 @@ export default function LiveScoringPage() {
 
         if (isOnline) {
           try {
-            const response = await api.recordBall(matchId, ballData);
+            console.log('Recording ball:', { matchId, ballData });
+            
+            // Add timeout to prevent hanging
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Request timeout - API call took too long')), 10000);
+            });
+            
+            const apiPromise = api.recordBall(matchId, ballData);
+            const response = await Promise.race([apiPromise, timeoutPromise]) as any;
+            
+            console.log('Ball recorded successfully:', response);
             setSyncStatus('synced');
             success('Ball recorded');
             
             // Update match state from response (optimistic update)
-            if (response.data) {
+            if (response?.data) {
               setMatch((prev) => {
                 if (!prev) return prev;
                 return {
@@ -304,6 +323,11 @@ export default function LiveScoringPage() {
             }, 300);
           } catch (apiError: any) {
             console.error('API error recording ball:', apiError);
+            console.error('Error details:', {
+              message: apiError?.message,
+              response: apiError?.response?.data,
+              status: apiError?.response?.status,
+            });
             // If API fails, try to save offline
             throw apiError; // Re-throw to be caught by outer catch
           }
@@ -319,7 +343,24 @@ export default function LiveScoringPage() {
         }
       } catch (error: any) {
         console.error('Error recording ball:', error);
+        console.error('Error stack:', error?.stack);
+        console.error('Error response:', error?.response);
+        
         setSyncStatus('error');
+        
+        // Show detailed error message
+        const errorMessage = error?.response?.data?.message || error?.message || 'Failed to save ball';
+        console.error('Error message:', errorMessage);
+        
+        // If it's a validation error about missing setup, redirect to setup
+        if (errorMessage.includes('setup') || errorMessage.includes('striker') || errorMessage.includes('bowler')) {
+          showError(`${errorMessage}. Please complete match setup.`);
+          setTimeout(() => {
+            router.push(`/matches/${matchId}/setup`);
+          }, 2000);
+          return;
+        }
+        
         // Try to save offline as fallback
         try {
           await addToQueue({
@@ -342,7 +383,7 @@ export default function LiveScoringPage() {
           success('Ball saved offline');
         } catch (offlineError) {
           console.error('Failed to save ball offline:', offlineError);
-          showError(error?.response?.data?.message || error?.message || 'Failed to save ball');
+          showError(errorMessage);
         }
       }
     },
@@ -365,12 +406,22 @@ export default function LiveScoringPage() {
 
   const recordBall = useCallback(
     async (runs: number, ballType: string, isWicket: boolean = false) => {
-      if (!match) return;
+      if (!match) {
+        showError('Match data not loaded');
+        return;
+      }
 
       // Check if match is locked
       // @ts-ignore
       if (match.isLocked) {
         showError('Match is locked and cannot be edited');
+        return;
+      }
+
+      // Validate required fields for scoring
+      if (!strikerId || !nonStrikerId || !bowlerId) {
+        showError('Please complete match setup: select opening batters and first bowler');
+        router.push(`/matches/${matchId}/setup`);
         return;
       }
 
@@ -395,7 +446,7 @@ export default function LiveScoringPage() {
       // Record the ball immediately
       await recordBallInternal(runs, ballType, false, freeHit);
     },
-    [match, freeHit, showError, recordBallInternal]
+    [match, freeHit, showError, recordBallInternal, strikerId, nonStrikerId, bowlerId, matchId, router]
   );
 
   const handleWicketConfirm = useCallback(
@@ -732,6 +783,128 @@ export default function LiveScoringPage() {
     [success]
   );
 
+  // Handle manual score entry
+  const handleManualScore = useCallback(
+    async (data: {
+      runs: number;
+      wickets: number;
+      overs: number;
+      balls: number;
+      strikerId?: string;
+      nonStrikerId?: string;
+      bowlerId?: string;
+    }) => {
+      try {
+        // Update score via API
+        const updateData: any = {
+          home: match?.currentScore?.home || { runs: 0, wickets: 0, overs: 0, balls: 0 },
+          away: match?.currentScore?.away || { runs: 0, wickets: 0, overs: 0, balls: 0 },
+          innings: currentInnings,
+        };
+        
+        // Update the batting team's score
+        updateData[battingTeam] = {
+          runs: data.runs,
+          wickets: data.wickets,
+          overs: data.overs,
+          balls: data.balls,
+        };
+
+        // Include live state updates if players are provided
+        if (data.strikerId || data.nonStrikerId || data.bowlerId || data.overs !== undefined || data.balls !== undefined) {
+          updateData.liveState = {
+            strikerId: data.strikerId,
+            nonStrikerId: data.nonStrikerId,
+            bowlerId: data.bowlerId,
+            currentOver: data.overs,
+            currentBall: data.balls,
+          };
+        }
+        
+        await api.updateScore(matchId, updateData);
+
+        // Update local state
+        if (data.strikerId) setStrikerId(data.strikerId);
+        if (data.nonStrikerId) setNonStrikerId(data.nonStrikerId);
+        if (data.bowlerId) setBowlerId(data.bowlerId);
+        setCurrentOver(data.overs);
+        setCurrentBall(data.balls);
+
+        // Reload match
+        await loadMatch();
+        success('Score updated manually');
+      } catch (error: any) {
+        showError(error.response?.data?.message || 'Failed to update score');
+      }
+    },
+    [matchId, battingTeam, match, currentInnings, loadMatch, success, showError]
+  );
+
+  // Handle player management
+  const handlePlayerManagement = useCallback(
+    async (homePlayers: Array<{ id: string; name: string }>, awayPlayers: Array<{ id: string; name: string }>) => {
+      try {
+        // Update match setup with new players
+        await api.completeMatchSetup(matchId, {
+          matchId,
+          homePlayingXI: homePlayers,
+          awayPlayingXI: awayPlayers,
+        });
+        await loadMatch();
+        success('Players updated');
+      } catch (error: any) {
+        showError(error.response?.data?.message || 'Failed to update players');
+      }
+    },
+    [matchId, loadMatch, success, showError]
+  );
+
+  // Handle change current players
+  const handleChangePlayers = useCallback(
+    async (newStrikerId: string, newNonStrikerId: string, newBowlerId: string) => {
+      try {
+        // Update live state via API
+        await api.updateLiveState(matchId, {
+          strikerId: newStrikerId,
+          nonStrikerId: newNonStrikerId,
+          bowlerId: newBowlerId,
+        });
+
+        // Update local state
+        setStrikerId(newStrikerId);
+        setNonStrikerId(newNonStrikerId);
+        setBowlerId(newBowlerId);
+        
+        // Reload match to get updated state
+        await loadMatch();
+        success('Players changed');
+      } catch (error: any) {
+        showError(error.response?.data?.message || 'Failed to change players');
+      }
+    },
+    [matchId, loadMatch, success, showError]
+  );
+
+  // Handle edit match setup (toss)
+  const handleEditSetup = useCallback(
+    async (tossWinner: 'home' | 'away', tossDecision: 'bat' | 'bowl') => {
+      try {
+        await api.completeMatchSetup(matchId, {
+          matchId,
+          toss: {
+            winner: tossWinner,
+            decision: tossDecision,
+          },
+        });
+        await loadMatch();
+        success('Toss updated');
+      } catch (error: any) {
+        showError(error.response?.data?.message || 'Failed to update toss');
+      }
+    },
+    [matchId, loadMatch, success, showError]
+  );
+
   if (authLoading || loading) {
     return (
       <AppLayout title="Live Scoring" showBack>
@@ -764,8 +937,80 @@ export default function LiveScoringPage() {
   // @ts-ignore
   const availableFielders = match?.matchSetup?.[battingTeam === 'home' ? 'awayPlayingXI' : 'homePlayingXI'] || [];
 
+  // Get available players for modals
+  // @ts-ignore
+  const availableBattersForModals = match?.matchSetup?.[battingTeam === 'home' ? 'homePlayingXI' : 'awayPlayingXI'] || [];
+  // @ts-ignore
+  const availableBowlersForModals = match?.matchSetup?.[battingTeam === 'home' ? 'awayPlayingXI' : 'homePlayingXI'] || [];
+
   return (
-    <AppLayout title="Live Scoring" showBack>
+    <AppLayout 
+      title="Live Scoring" 
+      showBack
+      headerActions={
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+            className="touch-target"
+            aria-label="Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </Button>
+          {showSettingsMenu && (
+            <>
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowSettingsMenu(false)}
+              />
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <button
+                  onClick={() => {
+                    setShowManualScore(true);
+                    setShowSettingsMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <Target className="w-4 h-4" />
+                  Manual Score Entry
+                </button>
+                <button
+                  onClick={() => {
+                    setShowChangePlayers(true);
+                    setShowSettingsMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  Change Players
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPlayerManagement(true);
+                    setShowSettingsMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <Users className="w-4 h-4" />
+                  Manage Players
+                </button>
+                <button
+                  onClick={() => {
+                    setShowEditSetup(true);
+                    setShowSettingsMenu(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit Toss
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      }
+    >
       <div className="space-y-4 pb-4">
         {/* Match Info */}
         <Card className="p-4 bg-gradient-to-br from-primary-50 to-primary-100">
@@ -1065,6 +1310,86 @@ export default function LiveScoringPage() {
               ) || []
             }
             oversBowled={currentBowlerOvers}
+          />
+        )}
+
+        {/* Manual Score Entry Modal */}
+        {showManualScore && match && match.currentScore && (
+          <ManualScoreModal
+            isOpen={showManualScore}
+            onClose={() => setShowManualScore(false)}
+            onSave={handleManualScore}
+            currentScore={{
+              runs: match.currentScore[battingTeam].runs,
+              wickets: match.currentScore[battingTeam].wickets,
+              overs: match.currentScore[battingTeam].overs,
+              balls: match.currentScore[battingTeam].balls || 0,
+            }}
+            availableBatters={
+              // @ts-ignore
+              match.matchSetup?.[battingTeam === 'home' ? 'homePlayingXI' : 'awayPlayingXI'] || []
+            }
+            availableBowlers={
+              // @ts-ignore
+              match.matchSetup?.[battingTeam === 'home' ? 'awayPlayingXI' : 'homePlayingXI'] || []
+            }
+            currentStrikerId={strikerId}
+            currentNonStrikerId={nonStrikerId}
+            currentBowlerId={bowlerId}
+          />
+        )}
+
+        {/* Player Management Modal */}
+        {showPlayerManagement && match && (
+          <PlayerManagementModal
+            isOpen={showPlayerManagement}
+            onClose={() => setShowPlayerManagement(false)}
+            onSave={handlePlayerManagement}
+            homePlayers={
+              // @ts-ignore
+              match.matchSetup?.homePlayingXI || []
+            }
+            awayPlayers={
+              // @ts-ignore
+              match.matchSetup?.awayPlayingXI || []
+            }
+            homeTeamName={match.teams.home.name}
+            awayTeamName={match.teams.away.name}
+          />
+        )}
+
+        {/* Change Players Modal */}
+        {showChangePlayers && match && (
+          <ChangePlayersModal
+            isOpen={showChangePlayers}
+            onClose={() => setShowChangePlayers(false)}
+            onSave={handleChangePlayers}
+            availableBatters={
+              // @ts-ignore
+              match.matchSetup?.[battingTeam === 'home' ? 'homePlayingXI' : 'awayPlayingXI'] || []
+            }
+            availableBowlers={
+              // @ts-ignore
+              match.matchSetup?.[battingTeam === 'home' ? 'awayPlayingXI' : 'homePlayingXI'] || []
+            }
+            currentStrikerId={strikerId}
+            currentNonStrikerId={nonStrikerId}
+            currentBowlerId={bowlerId}
+          />
+        )}
+
+        {/* Edit Match Setup Modal */}
+        {showEditSetup && match && (
+          <EditMatchSetupModal
+            isOpen={showEditSetup}
+            onClose={() => setShowEditSetup(false)}
+            onSave={handleEditSetup}
+            homeTeamName={match.teams.home.name}
+            awayTeamName={match.teams.away.name}
+            // @ts-ignore
+            currentTossWinner={match.matchSetup?.tossWinner}
+            // @ts-ignore
+            currentTossDecision={match.matchSetup?.tossDecision}
           />
         )}
       </div>

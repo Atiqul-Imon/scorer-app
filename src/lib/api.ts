@@ -218,6 +218,21 @@ export const api = {
     );
     return response.data;
   },
+
+  // Update live state (current players, over, ball)
+  async updateLiveState(matchId: string, data: {
+    strikerId?: string;
+    nonStrikerId?: string;
+    bowlerId?: string;
+    currentOver?: number;
+    currentBall?: number;
+  }): Promise<ApiResponse<CricketMatch>> {
+    const response = await apiClient.put<ApiResponse<CricketMatch>>(
+      `/cricket/local/matches/${matchId}/live-state`,
+      data
+    );
+    return response.data;
+  },
 };
 
 export default apiClient;
