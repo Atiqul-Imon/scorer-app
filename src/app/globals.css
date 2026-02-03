@@ -38,6 +38,20 @@
   *:focus-visible {
     @apply outline-none ring-2 ring-primary-500 ring-offset-2;
   }
+
+  /* Dark theme for select elements */
+  select {
+    @apply bg-gray-800 text-gray-100;
+  }
+
+  select option {
+    @apply bg-gray-800 text-gray-100;
+  }
+
+  /* Ensure textareas have dark theme */
+  textarea {
+    @apply bg-gray-800 text-gray-100;
+  }
 }
 
 @layer components {

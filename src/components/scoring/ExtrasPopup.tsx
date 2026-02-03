@@ -13,19 +13,20 @@ interface ExtrasPopupProps {
 }
 
 export default function ExtrasPopup({ isOpen, onClose, onConfirm, type }: ExtrasPopupProps) {
-  // For bye/leg_bye, default to 1 run. For wide/no-ball, default to 0 (base 1 run already counted)
-  const [selectedRuns, setSelectedRuns] = useState((type === 'bye' || type === 'leg_bye') ? 1 : 0);
+  // Store the total runs selected by user (1-5 for wide/no-ball, 1-6 for bye/leg_bye)
+  const [selectedTotalRuns, setSelectedTotalRuns] = useState(1);
 
   const handleConfirm = () => {
-    onConfirm(selectedRuns);
-    setSelectedRuns(0);
+    // For wide/no-ball: convert total runs to additional runs (total - 1 base run)
+    // For bye/leg_bye: total runs is what we pass directly
+    const additionalRuns = (type === 'wide' || type === 'no_ball') 
+      ? selectedTotalRuns - 1 
+      : selectedTotalRuns;
+    onConfirm(additionalRuns);
+    setSelectedTotalRuns(1); // Reset to 1 for next time
   };
 
   const typeLabel = type === 'wide' ? 'Wide' : type === 'no_ball' ? 'No Ball' : type === 'bye' ? 'Bye' : 'Leg Bye';
-  // For wide/no-ball: base 1 run + additional runs
-  // For bye/leg_bye: just the runs (no base run)
-  const defaultRuns = (type === 'wide' || type === 'no_ball') ? 1 : 0;
-  const totalRuns = defaultRuns + selectedRuns;
 
   if (!isOpen) return null;
 
@@ -35,9 +36,7 @@ export default function ExtrasPopup({ isOpen, onClose, onConfirm, type }: Extras
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-100">
-              {type === 'wide' || type === 'no_ball' 
-                ? `${typeLabel} - Additional Runs?`
-                : typeLabel}
+              {typeLabel} - Select Runs
             </h2>
             <button
               onClick={onClose}
@@ -51,22 +50,22 @@ export default function ExtrasPopup({ isOpen, onClose, onConfirm, type }: Extras
           <div className="space-y-4">
             <p className="text-sm text-gray-300">
               {type === 'wide' || type === 'no_ball' 
-                ? `Did the ${typeLabel.toLowerCase()} result in additional runs? (e.g., wide 4, no-ball 6)`
+                ? `How many total runs from the ${typeLabel.toLowerCase()}? (e.g., wide 1, wide 4, no-ball 6)`
                 : `How many runs from the ${typeLabel.toLowerCase()}? (1-6 runs)`}
             </p>
 
-            <div className="grid grid-cols-6 gap-2">
-              {(type === 'wide' || type === 'no_ball' 
-                ? [0, 1, 2, 3, 4] 
-                : [1, 2, 3, 4, 5, 6]).map((runs) => (
+            <div className={`grid gap-2 ${(type === 'wide' || type === 'no_ball') ? 'grid-cols-5' : 'grid-cols-6'}`}>
+              {((type === 'wide' || type === 'no_ball') 
+                ? [1, 2, 3, 4, 5] 
+                : [1, 2, 3, 4, 5, 6]).map((totalRuns) => (
                 <Button
-                  key={runs}
-                  variant={selectedRuns === runs ? 'primary' : 'outline'}
+                  key={totalRuns}
+                  variant={selectedTotalRuns === totalRuns ? 'primary' : 'outline'}
                   size="lg"
-                  onClick={() => setSelectedRuns(runs)}
+                  onClick={() => setSelectedTotalRuns(totalRuns)}
                   className="h-12 text-lg font-bold touch-target"
                 >
-                  {runs}
+                  {totalRuns}
                 </Button>
               ))}
             </div>
@@ -76,7 +75,7 @@ export default function ExtrasPopup({ isOpen, onClose, onConfirm, type }: Extras
                 Cancel
               </Button>
               <Button variant="primary" size="lg" fullWidth onClick={handleConfirm}>
-                Confirm ({totalRuns} runs)
+                Confirm ({selectedTotalRuns} {selectedTotalRuns === 1 ? 'run' : 'runs'})
               </Button>
             </div>
           </div>

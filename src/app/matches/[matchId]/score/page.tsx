@@ -980,13 +980,13 @@ export default function LiveScoringPage() {
                 className="fixed inset-0 z-40" 
                 onClick={() => setShowSettingsMenu(false)}
               />
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+              <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-50">
                 <button
                   onClick={() => {
                     setShowManualScore(true);
                     setShowSettingsMenu(false);
                   }}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                  className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2 transition-colors"
                 >
                   <Target className="w-4 h-4" />
                   Manual Score Entry
@@ -996,7 +996,7 @@ export default function LiveScoringPage() {
                     setShowChangePlayers(true);
                     setShowSettingsMenu(false);
                   }}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                  className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2 transition-colors"
                 >
                   <Edit className="w-4 h-4" />
                   Change Players
@@ -1006,7 +1006,7 @@ export default function LiveScoringPage() {
                     setShowPlayerManagement(true);
                     setShowSettingsMenu(false);
                   }}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                  className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2 transition-colors"
                 >
                   <Users className="w-4 h-4" />
                   Manage Players
@@ -1016,7 +1016,7 @@ export default function LiveScoringPage() {
                     setShowEditSetup(true);
                     setShowSettingsMenu(false);
                   }}
-                  className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 flex items-center gap-2"
+                  className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2 transition-colors"
                 >
                   <Edit className="w-4 h-4" />
                   Edit Toss
