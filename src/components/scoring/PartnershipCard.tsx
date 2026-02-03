@@ -13,17 +13,17 @@ export default function PartnershipCard({ runs, balls }: PartnershipCardProps) {
   const remainingBalls = balls % 6;
 
   return (
-    <Card className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
-      <div className="flex items-center gap-2 mb-2">
-        <Users className="w-4 h-4 text-purple-700" />
-        <h3 className="text-sm font-semibold text-gray-900">Partnership</h3>
+    <Card className="p-4 lg:p-6 bg-gradient-to-br from-purple-500/10 to-gray-800 border-purple-500/20">
+      <div className="flex items-center gap-2 mb-2 lg:mb-3">
+        <Users className="w-4 h-4 lg:w-5 lg:h-5 text-purple-400" />
+        <h3 className="text-sm lg:text-base font-semibold text-gray-100">Partnership</h3>
       </div>
       
       <div className="text-center">
-        <p className="text-2xl font-bold text-gray-900 mb-1">
-          {runs} <span className="text-lg text-gray-600">runs</span>
+        <p className="text-2xl lg:text-3xl font-bold text-gray-100 mb-1 lg:mb-2">
+          {runs} <span className="text-lg lg:text-xl text-gray-400">runs</span>
         </p>
-        <p className="text-xs text-gray-600">
+        <p className="text-xs lg:text-sm text-gray-400">
           {balls} balls ({overs}.{remainingBalls} overs)
         </p>
       </div>

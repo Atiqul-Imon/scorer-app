@@ -36,13 +36,13 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <Card className="p-6 md:p-8">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h1>
-            <p className="text-gray-600">Sign in to your scorer account</p>
+            <h1 className="text-2xl font-bold text-gray-100 mb-2">Welcome Back</h1>
+            <p className="text-gray-300">Sign in to your scorer account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-300 text-sm">
                 {error}
               </div>
             )}
@@ -80,9 +80,9 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-300">
               Don't have an account?{' '}
-              <Link href="/register" className="text-primary-600 font-medium hover:underline">
+              <Link href="/register" className="text-primary-400 font-medium hover:underline">
                 Register as Scorer
               </Link>
             </p>

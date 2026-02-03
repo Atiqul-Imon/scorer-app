@@ -100,54 +100,57 @@ function MatchesContent() {
 
   return (
     <AppLayout title="My Matches" headerActions={headerActions}>
-      <div className="space-y-4">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Search matches..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
+      <div className="space-y-4 lg:space-y-6">
+        {/* Search and Filters */}
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+          {/* Search */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search matches..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-        {/* Status Filter */}
-        <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2">
-          {['all', 'upcoming', 'live', 'completed'].map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`
-                px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap min-w-[80px]
-                transition-colors touch-target
-                ${
-                  statusFilter === status
-                    ? 'bg-primary-600 text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }
-              `}
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </button>
-          ))}
+          {/* Status Filter */}
+          <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2 lg:pb-0">
+            {['all', 'upcoming', 'live', 'completed'].map((status) => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`
+                  px-4 py-2 rounded-lg text-sm lg:text-base font-medium whitespace-nowrap min-w-[80px] lg:min-w-[100px]
+                  transition-colors touch-target
+                  ${
+                    statusFilter === status
+                      ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }
+                `}
+              >
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Matches List */}
         <div>
         {filteredMatches.length > 0 ? (
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
             {filteredMatches.map((match) => (
               <Link key={match.matchId} href={`/matches/${match.matchId}`}>
-                <Card variant="elevated" hover className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900 mb-1">
+                <Card variant="elevated" hover className="p-4 lg:p-6 h-full flex flex-col">
+                  <div className="flex items-start justify-between mb-2 lg:mb-3 flex-shrink-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-base lg:text-lg text-gray-100 mb-1 truncate">
                         {match.teams.home.name} vs {match.teams.away.name}
                       </p>
-                      <p className="text-sm text-gray-600 mb-1">{match.series}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm lg:text-base text-gray-400 mb-1 truncate">{match.series}</p>
+                      <p className="text-xs lg:text-sm text-gray-500 truncate">
                         {match.venue.name}, {match.venue.city} • {formatDate(match.startTime)}
                       </p>
                     </div>
@@ -159,19 +162,20 @@ function MatchesContent() {
                           ? 'default'
                           : 'info'
                       }
+                      className="ml-2 flex-shrink-0"
                     >
                       {match.status}
                     </Badge>
                   </div>
 
                   {match.currentScore && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <div className="flex items-center justify-between text-sm">
-                        <div>
+                    <div className="mt-3 lg:mt-4 pt-3 lg:pt-4 border-t border-gray-700 flex-shrink-0">
+                      <div className="flex items-center justify-between text-sm lg:text-base text-gray-300">
+                        <div className="min-w-0 flex-1">
                           <span className="font-medium">{match.teams.home.name}:</span>{' '}
                           {formatScore(match.currentScore.home)}
                         </div>
-                        <div>
+                        <div className="min-w-0 flex-1 text-right ml-4">
                           <span className="font-medium">{match.teams.away.name}:</span>{' '}
                           {formatScore(match.currentScore.away)}
                         </div>
@@ -180,7 +184,7 @@ function MatchesContent() {
                   )}
 
                   {match.status === 'live' && (
-                    <div className="mt-3">
+                    <div className="mt-3 lg:mt-4 flex-shrink-0">
                       <Button
                         variant="primary"
                         size="sm"
@@ -197,6 +201,7 @@ function MatchesContent() {
                             router.push(`/matches/${match.matchId}/update`);
                           }
                         }}
+                        className="text-sm lg:text-base"
                       >
                         {/* @ts-ignore */}
                         {match.matchSetup?.isSetupComplete ? 'Live Score' : match.matchId.startsWith('LOCAL-') ? 'Setup Match' : 'Update Score'}

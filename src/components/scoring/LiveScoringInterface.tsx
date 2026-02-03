@@ -68,25 +68,25 @@ export default function LiveScoringInterface({
   const StatusIcon = status.icon;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 lg:space-y-6">
       {/* Sync Status */}
-      <div className={cn('flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium', status.bg, status.color)}>
-        <StatusIcon className="w-4 h-4" />
+      <div className={cn('flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-2.5 rounded-lg text-sm lg:text-base font-medium', status.bg, status.color)}>
+        <StatusIcon className="w-4 h-4 lg:w-5 lg:h-5" />
         <span>{status.label}</span>
       </div>
 
       {/* Over Display */}
-      <Card className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+      <Card className="p-4 lg:p-6 bg-gradient-to-br from-blue-500/10 to-gray-800 border-blue-500/20">
         <div className="text-center">
-          <p className="text-xs text-gray-600 mb-1">Current Over</p>
-          <p className="text-3xl font-bold text-gray-900">
+          <p className="text-xs lg:text-sm text-gray-300 mb-1 lg:mb-2">Current Over</p>
+          <p className="text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-100">
             {currentOver}.{currentBall}
           </p>
         </div>
       </Card>
 
-      {/* Run Buttons - Large, Color-Coded */}
-      <div className="grid grid-cols-4 gap-3">
+      {/* Run Buttons - Responsive Grid */}
+      <div className="grid grid-cols-4 lg:grid-cols-4 gap-3 lg:gap-4">
         {[0, 1, 2, 3, 4, 5, 6].map((runs) => (
           <Button
             key={runs}
@@ -95,7 +95,7 @@ export default function LiveScoringInterface({
             onClick={() => handleRun(runs)}
             disabled={recording}
             className={cn(
-              'h-16 sm:h-20 text-2xl sm:text-3xl font-bold touch-target',
+              'h-16 sm:h-20 lg:h-24 xl:h-28 text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold touch-target transition-all hover:scale-105 active:scale-95',
               runs === 0 && 'bg-gray-600 hover:bg-gray-700',
               runs === 1 && 'bg-blue-600 hover:bg-blue-700',
               runs === 2 && 'bg-green-600 hover:bg-green-700',
@@ -111,13 +111,13 @@ export default function LiveScoringInterface({
       </div>
 
       {/* Extras and Wicket */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-2 gap-3 lg:gap-4">
         <Button
           variant="outline"
           size="lg"
           onClick={() => handleExtra('wide')}
           disabled={recording}
-          className="h-14 sm:h-16 text-base sm:text-lg font-semibold bg-yellow-50 border-yellow-300 text-yellow-900 hover:bg-yellow-100 touch-target"
+          className="h-14 sm:h-16 lg:h-18 xl:h-20 text-base sm:text-lg lg:text-xl font-semibold bg-yellow-500/20 border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/30 touch-target transition-all hover:scale-105 active:scale-95"
         >
           Wide
         </Button>
@@ -126,7 +126,7 @@ export default function LiveScoringInterface({
           size="lg"
           onClick={() => handleExtra('no_ball')}
           disabled={recording}
-          className="h-14 sm:h-16 text-base sm:text-lg font-semibold bg-red-50 border-red-300 text-red-900 hover:bg-red-100 touch-target"
+          className="h-14 sm:h-16 lg:h-18 xl:h-20 text-base sm:text-lg lg:text-xl font-semibold bg-red-500/20 border-red-500/50 text-red-300 hover:bg-red-500/30 touch-target transition-all hover:scale-105 active:scale-95"
         >
           No Ball
         </Button>
@@ -135,7 +135,7 @@ export default function LiveScoringInterface({
           size="lg"
           onClick={() => handleExtra('bye')}
           disabled={recording}
-          className="h-14 sm:h-16 text-base sm:text-lg font-semibold bg-blue-50 border-blue-300 text-blue-900 hover:bg-blue-100 touch-target"
+          className="h-14 sm:h-16 lg:h-18 xl:h-20 text-base sm:text-lg lg:text-xl font-semibold bg-blue-500/20 border-blue-500/50 text-blue-300 hover:bg-blue-500/30 touch-target transition-all hover:scale-105 active:scale-95"
         >
           Bye
         </Button>
@@ -144,7 +144,7 @@ export default function LiveScoringInterface({
           size="lg"
           onClick={() => handleExtra('leg_bye')}
           disabled={recording}
-          className="h-14 sm:h-16 text-base sm:text-lg font-semibold bg-indigo-50 border-indigo-300 text-indigo-900 hover:bg-indigo-100 touch-target"
+          className="h-14 sm:h-16 lg:h-18 xl:h-20 text-base sm:text-lg lg:text-xl font-semibold bg-indigo-500/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/30 touch-target transition-all hover:scale-105 active:scale-95"
         >
           Leg Bye
         </Button>
@@ -156,7 +156,7 @@ export default function LiveScoringInterface({
         size="lg"
         onClick={handleWicket}
         disabled={recording}
-        className="w-full h-16 sm:h-20 text-lg sm:text-xl font-bold bg-red-600 hover:bg-red-700 text-white touch-target"
+        className="w-full h-16 sm:h-20 lg:h-24 xl:h-28 text-lg sm:text-xl lg:text-2xl xl:text-3xl font-bold bg-red-600 hover:bg-red-700 text-white touch-target transition-all hover:scale-105 active:scale-95"
       >
         WICKET
       </Button>
@@ -167,10 +167,10 @@ export default function LiveScoringInterface({
         size="lg"
         onClick={onUndo}
         disabled={recording}
-        className="w-full h-14 sm:h-16 flex items-center justify-center gap-2 touch-target"
+        className="w-full h-14 sm:h-16 lg:h-18 xl:h-20 flex items-center justify-center gap-2 text-base sm:text-lg lg:text-xl font-semibold touch-target transition-all hover:scale-105 active:scale-95"
       >
-        <RotateCcw className="w-5 h-5" />
-        <span className="font-semibold">Undo Last Ball</span>
+        <RotateCcw className="w-5 h-5 lg:w-6 lg:h-6" />
+        <span>Undo Last Ball</span>
       </Button>
     </div>
   );

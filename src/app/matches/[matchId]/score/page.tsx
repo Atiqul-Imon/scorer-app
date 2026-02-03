@@ -1027,40 +1027,43 @@ export default function LiveScoringPage() {
         </div>
       }
     >
-      <div className="space-y-4 pb-4">
-        {/* Match Info */}
-        <Card className="p-4 bg-gradient-to-br from-primary-50 to-primary-100">
-          <div className="text-center">
-            <p className="text-sm text-gray-600 mb-2">{match.series}</p>
-            <p className="text-lg font-bold text-gray-900">
-              {match.teams.home.name} vs {match.teams.away.name}
-            </p>
-            <Badge variant="success" className="mt-2">
-              Innings {currentInnings}
-            </Badge>
-          </div>
-        </Card>
-
-        {/* Current Score */}
-        {match.currentScore && (
-          <Card className="p-4">
+      {/* Desktop Layout: Side-by-side, Mobile: Stacked */}
+      <div className="flex flex-col lg:flex-row lg:gap-6 lg:items-start">
+        {/* Left Column: Match Info & Stats (Desktop) / Top Section (Mobile) */}
+        <div className="flex-1 space-y-4 pb-4 lg:pb-0 lg:max-w-md xl:max-w-lg">
+          {/* Match Info */}
+          <Card className="p-4 lg:p-6 bg-gradient-to-br from-primary-500/10 to-gray-800 border-primary-500/20">
             <div className="text-center">
-              <p className="text-xs text-gray-600 mb-2">Current Score</p>
-              <div className="flex items-center justify-center gap-4">
-                <div>
-                  <p className="text-xs text-gray-600">{match.teams[battingTeam].shortName}</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {formatScore(match.currentScore[battingTeam])}
-                  </p>
-                </div>
-              </div>
+              <p className="text-sm lg:text-base text-gray-300 mb-2">{match.series}</p>
+              <p className="text-lg lg:text-xl font-bold text-gray-100">
+                {match.teams.home.name} vs {match.teams.away.name}
+              </p>
+              <Badge variant="success" className="mt-2">
+                Innings {currentInnings}
+              </Badge>
             </div>
           </Card>
-        )}
 
-        {/* Current Batters */}
-        {match && strikerId && nonStrikerId && (
-          <CurrentBattersCard
+          {/* Current Score */}
+          {match.currentScore && (
+            <Card className="p-4 lg:p-6">
+              <div className="text-center">
+                <p className="text-xs lg:text-sm text-gray-300 mb-2">Current Score</p>
+                <div className="flex items-center justify-center gap-4">
+                  <div>
+                    <p className="text-xs lg:text-sm text-gray-400">{match.teams[battingTeam].shortName}</p>
+                    <p className="text-2xl lg:text-3xl font-bold text-gray-100">
+                      {formatScore(match.currentScore[battingTeam])}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Current Batters */}
+          {match && strikerId && nonStrikerId && (
+            <CurrentBattersCard
             striker={
               // @ts-ignore
               match.battingStats?.find(
@@ -1192,42 +1195,48 @@ export default function LiveScoringPage() {
           )}
         </div>
 
-        {/* Free Hit Indicator */}
-        {freeHit && (
-          <Card className="p-3 bg-yellow-100 border-2 border-yellow-400">
-            <div className="text-center">
-              <p className="text-sm font-bold text-yellow-900">🎯 FREE HIT</p>
-              <p className="text-xs text-yellow-700">Next delivery is a free hit</p>
-            </div>
-          </Card>
-        )}
+          {/* Free Hit Indicator */}
+          {freeHit && (
+            <Card className="p-3 lg:p-4 bg-yellow-500/20 border-2 border-yellow-500/50">
+              <div className="text-center">
+                <p className="text-sm lg:text-base font-bold text-yellow-400">🎯 FREE HIT</p>
+                <p className="text-xs lg:text-sm text-yellow-300">Next delivery is a free hit</p>
+              </div>
+            </Card>
+          )}
+        </div>
 
-        {/* Live Scoring Interface - Disabled if match is locked */}
-        {/* @ts-ignore */}
-        {!match.isLocked ? (
-          <LiveScoringInterface
-            matchId={matchId}
-            battingTeam={battingTeam}
-            strikerId={strikerId}
-            nonStrikerId={nonStrikerId}
-            bowlerId={bowlerId}
-            currentOver={currentOver}
-            currentBall={currentBall}
-            onBallRecorded={recordBall}
-            onUndo={handleUndo}
-            syncStatus={syncStatus}
-          />
-        ) : (
-          <Card className="p-8 text-center">
-            <p className="text-lg font-semibold text-gray-900 mb-2">Match Completed</p>
-            <p className="text-sm text-gray-600">This match has been locked and cannot be edited.</p>
-            <Button variant="primary" className="mt-4" onClick={() => router.push(`/matches/${matchId}`)}>
-              View Match Details
-            </Button>
-          </Card>
-        )}
+        {/* Right Column: Scoring Interface (Desktop) / Bottom Section (Mobile) */}
+        <div className="flex-1 lg:flex-shrink-0 lg:w-96 xl:w-[28rem] space-y-4 pb-4 lg:pb-0 lg:sticky lg:top-20">
+          {/* Live Scoring Interface - Disabled if match is locked */}
+          {/* @ts-ignore */}
+          {!match.isLocked ? (
+            <LiveScoringInterface
+              matchId={matchId}
+              battingTeam={battingTeam}
+              strikerId={strikerId}
+              nonStrikerId={nonStrikerId}
+              bowlerId={bowlerId}
+              currentOver={currentOver}
+              currentBall={currentBall}
+              onBallRecorded={recordBall}
+              onUndo={handleUndo}
+              syncStatus={syncStatus}
+            />
+          ) : (
+            <Card className="p-8 text-center">
+              <p className="text-lg font-semibold text-gray-100 mb-2">Match Completed</p>
+              <p className="text-sm text-gray-400">This match has been locked and cannot be edited.</p>
+              <Button variant="primary" className="mt-4" onClick={() => router.push(`/matches/${matchId}`)}>
+                View Match Details
+              </Button>
+            </Card>
+          )}
+        </div>
+      </div>
 
-        {/* Wicket Popup */}
+      {/* Modals - Outside main layout */}
+      {/* Wicket Popup */}
         {showWicketPopup && pendingWicket && match && (
           <WicketPopup
             isOpen={showWicketPopup}
@@ -1421,7 +1430,6 @@ export default function LiveScoringPage() {
             currentTossDecision={match.matchSetup?.tossDecision}
           />
         )}
-      </div>
     </AppLayout>
   );
 }

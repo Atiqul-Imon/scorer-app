@@ -25,8 +25,8 @@ export default function EmptyState({
   return (
     <div className={cn('text-center py-12 px-4', className)}>
       {icon && <div className="mb-4 flex justify-center">{icon}</div>}
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      {description && <p className="text-gray-600 mb-6 max-w-sm mx-auto">{description}</p>}
+      <h3 className="text-lg font-semibold text-gray-100 mb-2">{title}</h3>
+      {description && <p className="text-gray-400 mb-6 max-w-sm mx-auto">{description}</p>}
       {action && (
         <Button variant="primary" onClick={action.onClick}>
           {action.label}

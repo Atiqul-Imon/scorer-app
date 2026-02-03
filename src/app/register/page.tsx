@@ -113,9 +113,9 @@ export default function RegisterPage() {
       <div className="min-h-screen flex items-center justify-center px-4 py-8">
         <Card className="p-8 text-center max-w-md">
           <div className="mb-4">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
               <svg
-                className="w-8 h-8 text-green-600"
+                className="w-8 h-8 text-green-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -129,8 +129,8 @@ export default function RegisterPage() {
               </svg>
             </div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Successful!</h2>
-          <p className="text-gray-600 mb-4">
+          <h2 className="text-2xl font-bold text-gray-100 mb-2">Registration Successful!</h2>
+          <p className="text-gray-300 mb-4">
             Your scorer account has been created. You can now sign in.
           </p>
           <Button variant="primary" onClick={() => router.push('/login')}>
@@ -146,13 +146,13 @@ export default function RegisterPage() {
       <div className="w-full max-w-md">
         <Card className="p-6 md:p-8">
           <div className="text-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Register as Scorer</h1>
-            <p className="text-gray-600">Create your scorer account to start managing matches</p>
+            <h1 className="text-2xl font-bold text-gray-100 mb-2">Register as Scorer</h1>
+            <p className="text-gray-300">Create your scorer account to start managing matches</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {errors.submit && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-300 text-sm">
                 {errors.submit}
               </div>
             )}
@@ -229,7 +229,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Scorer Type
               </label>
               <select
@@ -240,11 +240,11 @@ export default function RegisterPage() {
                     scorerType: e.target.value as 'official' | 'volunteer' | 'community',
                   })
                 }
-                className="w-full px-4 py-3 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[44px]"
+                className="w-full px-4 py-3 text-base rounded-lg bg-gray-800 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 min-h-[44px] text-gray-100"
               >
-                <option value="volunteer">Volunteer Scorer (Auto-approved)</option>
-                <option value="community">Community Scorer (Auto-approved)</option>
-                <option value="official">Official Scorer (Requires verification)</option>
+                <option value="volunteer" className="bg-gray-800">Volunteer Scorer (Auto-approved)</option>
+                <option value="community" className="bg-gray-800">Community Scorer (Auto-approved)</option>
+                <option value="official" className="bg-gray-800">Official Scorer (Requires verification)</option>
               </select>
             </div>
 
@@ -254,17 +254,17 @@ export default function RegisterPage() {
                 id="terms"
                 checked={formData.termsAccepted}
                 onChange={(e) => setFormData({ ...formData, termsAccepted: e.target.checked })}
-                className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                className="mt-1 h-4 w-4 text-primary-500 focus:ring-primary-500 border-gray-600 rounded bg-gray-800"
               />
-              <label htmlFor="terms" className="ml-2 text-sm text-gray-600">
+              <label htmlFor="terms" className="ml-2 text-sm text-gray-300">
                 I accept the{' '}
-                <Link href="/terms" className="text-primary-600 hover:underline">
+                <Link href="/terms" className="text-primary-400 hover:underline">
                   Terms and Conditions
                 </Link>
               </label>
             </div>
             {errors.termsAccepted && (
-              <p className="text-sm text-red-600">{errors.termsAccepted}</p>
+              <p className="text-sm text-red-400">{errors.termsAccepted}</p>
             )}
 
             <Button
@@ -280,9 +280,9 @@ export default function RegisterPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-300">
               Already have an account?{' '}
-              <Link href="/login" className="text-primary-600 font-medium hover:underline">
+              <Link href="/login" className="text-primary-400 font-medium hover:underline">
                 Sign In
               </Link>
             </p>

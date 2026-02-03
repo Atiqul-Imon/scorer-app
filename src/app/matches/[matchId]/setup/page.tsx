@@ -272,7 +272,7 @@ export default function MatchSetupPage() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading match...</p>
+            <p className="text-gray-300">Loading match...</p>
           </div>
         </div>
       </AppLayout>
@@ -283,7 +283,7 @@ export default function MatchSetupPage() {
     return (
       <AppLayout title="Match Setup" showBack>
         <Card className="p-8 text-center max-w-md mx-auto">
-          <p className="text-gray-600 mb-4">Match not found</p>
+          <p className="text-gray-300 mb-4">Match not found</p>
           <Button variant="primary" onClick={() => router.push('/matches')}>
             Go to Matches
           </Button>
@@ -310,7 +310,7 @@ export default function MatchSetupPage() {
                     ? 'bg-primary-600 text-white'
                     : ['teams', 'toss', 'openers', 'bowler'].indexOf(setupState.step) > index
                     ? 'bg-green-600 text-white'
-                    : 'bg-gray-200 text-gray-600',
+                    : 'bg-gray-700 text-gray-400',
                 )}
               >
                 {['teams', 'toss', 'openers', 'bowler'].indexOf(setupState.step) > index ? (
@@ -325,7 +325,7 @@ export default function MatchSetupPage() {
                     'flex-1 h-1 mx-2',
                     ['teams', 'toss', 'openers', 'bowler'].indexOf(setupState.step) > index
                       ? 'bg-green-600'
-                      : 'bg-gray-200',
+                      : 'bg-gray-700',
                   )}
                 />
               )}
@@ -337,7 +337,7 @@ export default function MatchSetupPage() {
         {setupState.step === 'teams' && (
           <div className="space-y-4">
             <Card className="p-4">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-gray-100 mb-4 flex items-center gap-2">
                 <Users className="w-5 h-5" />
                 Select Playing XI
               </h2>
@@ -345,7 +345,7 @@ export default function MatchSetupPage() {
               {/* Home Team */}
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-base font-semibold text-gray-900">
+                  <h3 className="text-base font-semibold text-gray-100">
                     {match.teams.home.name} ({setupState.homePlayingXI.length}/11)
                   </h3>
                   <button
@@ -353,7 +353,7 @@ export default function MatchSetupPage() {
                       setShowAddPlayer({ team: 'home' });
                       setNewPlayerName('');
                     }}
-                    className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary-600 hover:bg-primary-50 rounded touch-target"
+                    className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary-400 hover:bg-primary-500/20 rounded touch-target"
                   >
                     <Plus className="w-3 h-3" />
                     Add Player
@@ -366,7 +366,7 @@ export default function MatchSetupPage() {
                     
                     if (isEditing) {
                       return (
-                        <div key={player.id} className="p-2 border-2 border-primary-600 rounded-lg bg-primary-50">
+                        <div key={player.id} className="p-2 border-2 border-primary-500 rounded-lg bg-primary-500/20">
                           <Input
                             value={newPlayerName}
                             onChange={(e) => setNewPlayerName(e.target.value)}
@@ -406,10 +406,10 @@ export default function MatchSetupPage() {
                         className={cn(
                           'p-3 rounded-lg border-2 text-left transition-all touch-target relative',
                           isSelected
-                            ? 'border-primary-600 bg-primary-50 text-primary-900'
+                            ? 'border-primary-500 bg-primary-500/20 text-primary-300'
                             : player.name
-                            ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                            : 'border-dashed border-gray-300 bg-gray-50 text-gray-400',
+                            ? 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
+                            : 'border-dashed border-gray-600 bg-gray-800/50 text-gray-500',
                         )}
                       >
                         <div className="flex items-center justify-between">
@@ -424,12 +424,12 @@ export default function MatchSetupPage() {
                                   setEditingPlayer({ team: 'home', playerId: player.id });
                                   setNewPlayerName(player.name);
                                 }}
-                                className="p-1 hover:bg-primary-100 rounded"
+                                className="p-1 hover:bg-primary-500/20 rounded"
                               >
-                                <Edit2 className="w-3 h-3 text-primary-600" />
+                                <Edit2 className="w-3 h-3 text-primary-400" />
                               </button>
                             )}
-                            {isSelected && <Check className="w-4 h-4 text-primary-600" />}
+                            {isSelected && <Check className="w-4 h-4 text-primary-400" />}
                           </div>
                         </div>
                       </button>
@@ -439,7 +439,7 @@ export default function MatchSetupPage() {
                 
                 {/* Add Player Input */}
                 {showAddPlayer?.team === 'home' && (
-                  <div className="mt-2 p-3 border-2 border-primary-600 rounded-lg bg-primary-50">
+                  <div className="mt-2 p-3 border-2 border-primary-500 rounded-lg bg-primary-500/20">
                     <Input
                       value={newPlayerName}
                       onChange={(e) => setNewPlayerName(e.target.value)}
@@ -475,7 +475,7 @@ export default function MatchSetupPage() {
               {/* Away Team */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-base font-semibold text-gray-900">
+                  <h3 className="text-base font-semibold text-gray-100">
                     {match.teams.away.name} ({setupState.awayPlayingXI.length} selected)
                   </h3>
                   <button
@@ -483,7 +483,7 @@ export default function MatchSetupPage() {
                       setShowAddPlayer({ team: 'away' });
                       setNewPlayerName('');
                     }}
-                    className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary-600 hover:bg-primary-50 rounded touch-target"
+                    className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-primary-400 hover:bg-primary-500/20 rounded touch-target"
                   >
                     <Plus className="w-3 h-3" />
                     Add Player
@@ -496,7 +496,7 @@ export default function MatchSetupPage() {
                     
                     if (isEditing) {
                       return (
-                        <div key={player.id} className="p-2 border-2 border-primary-600 rounded-lg bg-primary-50">
+                        <div key={player.id} className="p-2 border-2 border-primary-500 rounded-lg bg-primary-500/20">
                           <Input
                             value={newPlayerName}
                             onChange={(e) => setNewPlayerName(e.target.value)}
@@ -536,10 +536,10 @@ export default function MatchSetupPage() {
                         className={cn(
                           'p-3 rounded-lg border-2 text-left transition-all touch-target relative',
                           isSelected
-                            ? 'border-primary-600 bg-primary-50 text-primary-900'
+                            ? 'border-primary-500 bg-primary-500/20 text-primary-300'
                             : player.name
-                            ? 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
-                            : 'border-dashed border-gray-300 bg-gray-50 text-gray-400',
+                            ? 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
+                            : 'border-dashed border-gray-600 bg-gray-800/50 text-gray-500',
                         )}
                       >
                         <div className="flex items-center justify-between">
@@ -554,12 +554,12 @@ export default function MatchSetupPage() {
                                   setEditingPlayer({ team: 'away', playerId: player.id });
                                   setNewPlayerName(player.name);
                                 }}
-                                className="p-1 hover:bg-primary-100 rounded"
+                                className="p-1 hover:bg-primary-500/20 rounded"
                               >
-                                <Edit2 className="w-3 h-3 text-primary-600" />
+                                <Edit2 className="w-3 h-3 text-primary-400" />
                               </button>
                             )}
-                            {isSelected && <Check className="w-4 h-4 text-primary-600" />}
+                            {isSelected && <Check className="w-4 h-4 text-primary-400" />}
                           </div>
                         </div>
                       </button>
@@ -569,7 +569,7 @@ export default function MatchSetupPage() {
                 
                 {/* Add Player Input */}
                 {showAddPlayer?.team === 'away' && (
-                  <div className="mt-2 p-3 border-2 border-primary-600 rounded-lg bg-primary-50">
+                  <div className="mt-2 p-3 border-2 border-primary-500 rounded-lg bg-primary-500/20">
                     <Input
                       value={newPlayerName}
                       onChange={(e) => setNewPlayerName(e.target.value)}
@@ -623,25 +623,25 @@ export default function MatchSetupPage() {
         {setupState.step === 'toss' && (
           <div className="space-y-4">
             <Card className="p-4">
-              <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-gray-100 mb-2 flex items-center gap-2">
                 <Trophy className="w-5 h-5" />
                 Toss Result
               </h2>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-300 mb-4">
                 Record the toss result (optional - can be updated later)
               </p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Toss Winner</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Toss Winner</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       onClick={() => setSetupState((prev) => ({ ...prev, tossWinner: 'home' }))}
                       className={cn(
                         'p-4 rounded-lg border-2 transition-all touch-target',
                         setupState.tossWinner === 'home'
-                          ? 'border-primary-600 bg-primary-50 text-primary-900'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                          ? 'border-primary-500 bg-primary-500/20 text-primary-300'
+                          : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500',
                       )}
                     >
                       <p className="font-semibold">{match.teams.home.name}</p>
@@ -651,8 +651,8 @@ export default function MatchSetupPage() {
                       className={cn(
                         'p-4 rounded-lg border-2 transition-all touch-target',
                         setupState.tossWinner === 'away'
-                          ? 'border-primary-600 bg-primary-50 text-primary-900'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                          ? 'border-primary-500 bg-primary-500/20 text-primary-300'
+                          : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500',
                       )}
                     >
                       <p className="font-semibold">{match.teams.away.name}</p>
@@ -662,15 +662,15 @@ export default function MatchSetupPage() {
 
                 {setupState.tossWinner && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Decision</label>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Decision</label>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         onClick={() => setSetupState((prev) => ({ ...prev, tossDecision: 'bat' }))}
                         className={cn(
                           'p-4 rounded-lg border-2 transition-all touch-target',
                           setupState.tossDecision === 'bat'
-                            ? 'border-primary-600 bg-primary-50 text-primary-900'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                            ? 'border-primary-500 bg-primary-500/20 text-primary-300'
+                            : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500',
                         )}
                       >
                         <p className="font-semibold">Bat</p>
@@ -680,8 +680,8 @@ export default function MatchSetupPage() {
                         className={cn(
                           'p-4 rounded-lg border-2 transition-all touch-target',
                           setupState.tossDecision === 'bowl'
-                            ? 'border-primary-600 bg-primary-50 text-primary-900'
-                            : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300',
+                            ? 'border-primary-500 bg-primary-500/20 text-primary-300'
+                            : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500',
                         )}
                       >
                         <p className="font-semibold">Bowl</p>
@@ -707,27 +707,27 @@ export default function MatchSetupPage() {
         {setupState.step === 'openers' && (
           <div className="space-y-4">
             <Card className="p-4">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-gray-100 mb-4 flex items-center gap-2">
                 <UserPlus className="w-5 h-5" />
                 Select Opening Batters
               </h2>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-300 mb-4">
                 {battingTeam === 'home' ? match.teams.home.name : match.teams.away.name} will bat first
               </p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Striker (Batter 1)</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Striker (Batter 1)</label>
                   <select
                     value={setupState.openingBatter1Id || ''}
                     onChange={(e) => setSetupState((prev) => ({ ...prev, openingBatter1Id: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base text-gray-100"
                   >
-                    <option value="">Select batter</option>
+                    <option value="" className="bg-gray-800">Select batter</option>
                     {availableBatters
                       .filter((p) => p.id !== setupState.openingBatter2Id)
                       .map((player) => (
-                        <option key={player.id} value={player.id}>
+                        <option key={player.id} value={player.id} className="bg-gray-800">
                           {player.name}
                         </option>
                       ))}
@@ -735,17 +735,17 @@ export default function MatchSetupPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Non-Striker (Batter 2)</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Non-Striker (Batter 2)</label>
                   <select
                     value={setupState.openingBatter2Id || ''}
                     onChange={(e) => setSetupState((prev) => ({ ...prev, openingBatter2Id: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base text-gray-100"
                   >
-                    <option value="">Select batter</option>
+                    <option value="" className="bg-gray-800">Select batter</option>
                     {availableBatters
                       .filter((p) => p.id !== setupState.openingBatter1Id)
                       .map((player) => (
-                        <option key={player.id} value={player.id}>
+                        <option key={player.id} value={player.id} className="bg-gray-800">
                           {player.name}
                         </option>
                       ))}
@@ -769,24 +769,24 @@ export default function MatchSetupPage() {
         {setupState.step === 'bowler' && (
           <div className="space-y-4">
             <Card className="p-4">
-              <h2 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-gray-100 mb-2 flex items-center gap-2">
                 <UserPlus className="w-5 h-5" />
                 Select First Bowler
               </h2>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-300 mb-4">
                 {battingTeam === 'home' ? match.teams.away.name : match.teams.home.name} will bowl first (optional - can be set later)
               </p>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Bowler</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Bowler</label>
                 <select
                   value={setupState.firstBowlerId || ''}
                   onChange={(e) => setSetupState((prev) => ({ ...prev, firstBowlerId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base text-gray-100"
                 >
-                  <option value="">Select bowler</option>
+                  <option value="" className="bg-gray-800">Select bowler</option>
                   {availableBowlers.map((player) => (
-                    <option key={player.id} value={player.id}>
+                    <option key={player.id} value={player.id} className="bg-gray-800">
                       {player.name}
                     </option>
                   ))}

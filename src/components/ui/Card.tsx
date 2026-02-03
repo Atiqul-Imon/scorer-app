@@ -17,9 +17,9 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     };
 
     const variantClasses = {
-      default: 'bg-white border border-gray-200 shadow-sm',
-      elevated: 'bg-white shadow-md border border-gray-100',
-      outlined: 'bg-white border-2 border-gray-300',
+      default: 'bg-gray-800 border border-gray-700 shadow-sm',
+      elevated: 'bg-gray-800 shadow-lg border border-gray-700',
+      outlined: 'bg-gray-800 border-2 border-gray-600',
     };
 
     return (
@@ -29,7 +29,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
           'rounded-xl transition-all',
           variantClasses[variant],
           paddingClasses[padding],
-          hover && 'hover:shadow-lg hover:border-primary-200',
+          hover && 'hover:shadow-xl hover:border-primary-500/50 hover:bg-gray-750',
           className
         )}
         {...props}

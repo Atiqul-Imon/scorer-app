@@ -93,7 +93,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading dashboard...</p>
+            <p className="text-gray-300">Loading dashboard...</p>
           </div>
         </div>
       </AppLayout>
@@ -106,69 +106,69 @@ export default function DashboardPage() {
       subtitle={`Welcome back, ${user?.name || 'Scorer'}`}
       headerActions={headerActions}
     >
-      <div className="space-y-6">
+      <div className="space-y-6 lg:space-y-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card variant="elevated" className="p-4 bg-gradient-to-br from-primary-50 to-white">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600 font-medium">Total Matches</span>
-              <Calendar className="w-5 h-5 text-primary-600" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <Card variant="elevated" className="p-4 lg:p-6 bg-gradient-to-br from-primary-500/10 to-gray-800 border-primary-500/20">
+            <div className="flex items-center justify-between mb-2 lg:mb-3">
+              <span className="text-sm lg:text-base text-gray-300 font-medium">Total Matches</span>
+              <Calendar className="w-5 h-5 lg:w-6 lg:h-6 text-primary-400" />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+            <p className="text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-100">{stats.total}</p>
           </Card>
 
-          <Card variant="elevated" className="p-4 bg-gradient-to-br from-green-50 to-white">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600 font-medium">Active</span>
-              <TrendingUp className="w-5 h-5 text-green-600" />
+          <Card variant="elevated" className="p-4 lg:p-6 bg-gradient-to-br from-green-500/10 to-gray-800 border-green-500/20">
+            <div className="flex items-center justify-between mb-2 lg:mb-3">
+              <span className="text-sm lg:text-base text-gray-300 font-medium">Active</span>
+              <TrendingUp className="w-5 h-5 lg:w-6 lg:h-6 text-green-400" />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.active}</p>
+            <p className="text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-100">{stats.active}</p>
           </Card>
 
-          <Card variant="elevated" className="p-4 bg-gradient-to-br from-blue-50 to-white">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600 font-medium">Completed</span>
-              <Award className="w-5 h-5 text-blue-600" />
+          <Card variant="elevated" className="p-4 lg:p-6 bg-gradient-to-br from-blue-500/10 to-gray-800 border-blue-500/20">
+            <div className="flex items-center justify-between mb-2 lg:mb-3">
+              <span className="text-sm lg:text-base text-gray-300 font-medium">Completed</span>
+              <Award className="w-5 h-5 lg:w-6 lg:h-6 text-blue-400" />
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.completed}</p>
+            <p className="text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-100">{stats.completed}</p>
           </Card>
 
-          <Card variant="elevated" className="p-4 bg-gradient-to-br from-purple-50 to-white">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600 font-medium">Accuracy</span>
-              <Badge variant="success">{stats.accuracy}%</Badge>
+          <Card variant="elevated" className="p-4 lg:p-6 bg-gradient-to-br from-purple-500/10 to-gray-800 border-purple-500/20">
+            <div className="flex items-center justify-between mb-2 lg:mb-3">
+              <span className="text-sm lg:text-base text-gray-300 font-medium">Accuracy</span>
+              <Badge variant="success" className="text-xs lg:text-sm">{stats.accuracy}%</Badge>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{stats.accuracy}%</p>
+            <p className="text-2xl lg:text-3xl xl:text-4xl font-bold text-gray-100">{stats.accuracy}%</p>
           </Card>
         </div>
 
         {/* Active Matches */}
         {activeMatches.length > 0 && (
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Active Matches</h2>
+            <div className="flex items-center justify-between mb-4 lg:mb-6">
+              <h2 className="text-lg lg:text-xl font-semibold text-gray-100">Active Matches</h2>
               <Link
                 href="/matches?status=live"
-                className="text-sm text-primary-600 font-medium hover:underline"
+                className="text-sm lg:text-base text-primary-400 font-medium hover:text-primary-300 hover:underline"
               >
                 View All
               </Link>
             </div>
-            <div className="space-y-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
               {activeMatches.map((match) => (
                 <Link key={match.matchId} href={`/matches/${match.matchId}/update`}>
-                  <Card variant="elevated" hover className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900">
+                  <Card variant="elevated" hover className="p-4 lg:p-6 h-full">
+                    <div className="flex items-center justify-between mb-2 lg:mb-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-base lg:text-lg text-gray-100 truncate">
                           {match.teams.home.name} vs {match.teams.away.name}
                         </p>
-                        <p className="text-sm text-gray-600">{match.venue.name}</p>
+                        <p className="text-sm lg:text-base text-gray-400 truncate">{match.venue.name}</p>
                       </div>
-                      <Badge variant="success">Live</Badge>
+                      <Badge variant="success" className="ml-2 flex-shrink-0">Live</Badge>
                     </div>
                     {match.currentScore && (
-                      <div className="mt-2 text-sm text-gray-700">
+                      <div className="mt-2 lg:mt-3 text-sm lg:text-base text-gray-300">
                         <span className="font-medium">
                           {match.currentScore.home.runs}/{match.currentScore.home.wickets}
                         </span>
@@ -187,26 +187,26 @@ export default function DashboardPage() {
 
         {/* Recent Matches */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Matches</h2>
+          <div className="flex items-center justify-between mb-4 lg:mb-6">
+            <h2 className="text-lg lg:text-xl font-semibold text-gray-100">Recent Matches</h2>
             <Link
               href="/matches"
-              className="text-sm text-primary-600 font-medium hover:underline"
+              className="text-sm lg:text-base text-primary-400 font-medium hover:text-primary-300 hover:underline"
             >
               View All
             </Link>
           </div>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
             {recentMatches.length > 0 ? (
               recentMatches.map((match) => (
                 <Link key={match.matchId} href={`/matches/${match.matchId}`}>
-                  <Card variant="elevated" hover className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900">
+                  <Card variant="elevated" hover className="p-4 lg:p-6 h-full">
+                    <div className="flex items-center justify-between mb-2 lg:mb-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-base lg:text-lg text-gray-100 truncate">
                           {match.teams.home.name} vs {match.teams.away.name}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm lg:text-base text-gray-400 truncate">
                           {match.venue.name} • {formatDate(match.startTime)}
                         </p>
                       </div>
@@ -218,6 +218,7 @@ export default function DashboardPage() {
                             ? 'default'
                             : 'info'
                         }
+                        className="ml-2 flex-shrink-0"
                       >
                         {match.status}
                       </Badge>

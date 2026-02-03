@@ -112,10 +112,10 @@ export default function ManualScoreModal({
       <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Manual Score Entry</h2>
+            <h2 className="text-xl font-bold text-gray-100">Manual Score Entry</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+              className="p-2 hover:bg-gray-700 rounded-lg touch-target text-gray-300 hover:text-gray-100"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -123,13 +123,13 @@ export default function ManualScoreModal({
           </div>
 
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-300">
               Use this to jump to a specific score/over (e.g., if you started scoring late)
             </p>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Runs</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Runs</label>
                 <Input
                   type="number"
                   value={runs}
@@ -139,7 +139,7 @@ export default function ManualScoreModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Wickets</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Wickets</label>
                 <Input
                   type="number"
                   value={wickets}
@@ -150,7 +150,7 @@ export default function ManualScoreModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Overs</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Overs</label>
                 <Input
                   type="number"
                   value={overs}
@@ -161,7 +161,7 @@ export default function ManualScoreModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Balls</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Balls</label>
                 <Input
                   type="number"
                   value={balls}
@@ -175,17 +175,17 @@ export default function ManualScoreModal({
 
             {availableBatters.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Striker</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Striker</label>
                 <select
                   value={strikerId}
                   onChange={(e) => setStrikerId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base text-gray-100"
                 >
-                  <option value="">Select striker</option>
+                  <option value="" className="bg-gray-800">Select striker</option>
                   {availableBatters
                     .filter((p) => p.id !== nonStrikerId)
                     .map((player) => (
-                      <option key={player.id} value={player.id}>
+                      <option key={player.id} value={player.id} className="bg-gray-800">
                         {player.name}
                       </option>
                     ))}
@@ -195,17 +195,17 @@ export default function ManualScoreModal({
 
             {availableBatters.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Non-Striker</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Non-Striker</label>
                 <select
                   value={nonStrikerId}
                   onChange={(e) => setNonStrikerId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base text-gray-100"
                 >
-                  <option value="">Select non-striker</option>
+                  <option value="" className="bg-gray-800">Select non-striker</option>
                   {availableBatters
                     .filter((p) => p.id !== strikerId)
                     .map((player) => (
-                      <option key={player.id} value={player.id}>
+                      <option key={player.id} value={player.id} className="bg-gray-800">
                         {player.name}
                       </option>
                     ))}
@@ -215,15 +215,15 @@ export default function ManualScoreModal({
 
             {availableBowlers.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bowler</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Bowler</label>
                 <select
                   value={bowlerId}
                   onChange={(e) => setBowlerId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base text-gray-100"
                 >
-                  <option value="">Select bowler</option>
+                  <option value="" className="bg-gray-800">Select bowler</option>
                   {availableBowlers.map((player) => (
-                    <option key={player.id} value={player.id}>
+                    <option key={player.id} value={player.id} className="bg-gray-800">
                       {player.name}
                     </option>
                   ))}

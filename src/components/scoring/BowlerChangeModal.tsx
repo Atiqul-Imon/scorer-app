@@ -33,13 +33,13 @@ export default function BowlerChangeModal({
       <Card className="w-full max-w-md">
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-gray-100 flex items-center gap-2">
               <RefreshCw className="w-5 h-5" />
               Change Bowler
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+              className="p-2 hover:bg-gray-700 rounded-lg touch-target text-gray-300 hover:text-gray-100"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -47,23 +47,23 @@ export default function BowlerChangeModal({
           </div>
 
           <div className="space-y-4">
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-gray-700">
+            <div className="p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+              <p className="text-sm text-gray-300">
                 <span className="font-semibold">{currentBowlerName}</span> has bowled{' '}
                 <span className="font-semibold">{oversBowled.toFixed(1)}</span> overs.
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select New Bowler</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Select New Bowler</label>
               <select
                 value={newBowlerId}
                 onChange={(e) => setNewBowlerId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base text-gray-100"
               >
-                <option value="">Select bowler</option>
+                <option value="" className="bg-gray-800">Select bowler</option>
                 {availableBowlers.map((player) => (
-                  <option key={player.id} value={player.id}>
+                  <option key={player.id} value={player.id} className="bg-gray-800">
                     {player.name}
                   </option>
                 ))}

@@ -91,8 +91,8 @@ export default function ProfilePage() {
       <AppLayout title="Profile">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading profile...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+            <p className="text-gray-300">Loading profile...</p>
           </div>
         </div>
       </AppLayout>
@@ -149,12 +149,12 @@ export default function ProfilePage() {
       <div className="space-y-6">
         {/* Success/Error Messages */}
         {success && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+          <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-300 text-sm">
             {success}
           </div>
         )}
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-300 text-sm">
             {error}
           </div>
         )}
@@ -166,7 +166,7 @@ export default function ProfilePage() {
               {user.name?.charAt(0).toUpperCase() || 'S'}
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-bold text-gray-900 mb-1">
+              <h2 className="text-xl font-bold text-gray-100 mb-1">
                 {editing ? (
                   <Input
                     value={formData.name}
@@ -196,22 +196,22 @@ export default function ProfilePage() {
 
           {/* Scorer ID */}
           {scorerProfile?.scorerId && (
-            <div className="pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600">Scorer ID</p>
-              <p className="text-base font-mono text-gray-900">{scorerProfile.scorerId}</p>
+            <div className="pt-4 border-t border-gray-700">
+              <p className="text-sm text-gray-400">Scorer ID</p>
+              <p className="text-base font-mono text-gray-100">{scorerProfile.scorerId}</p>
             </div>
           )}
         </Card>
 
         {/* Contact Information */}
         <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <User className="w-5 h-5 text-primary-600" />
+          <h3 className="text-lg font-semibold text-gray-100 mb-4 flex items-center gap-2">
+            <User className="w-5 h-5 text-primary-400" />
             Contact Information
           </h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 Email
               </label>
@@ -221,15 +221,15 @@ export default function ProfilePage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   disabled
-                  className="bg-gray-50"
+                  className="bg-gray-800"
                 />
               ) : (
-                <p className="text-gray-900">{user.email}</p>
+                <p className="text-gray-100">{user.email}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-2">
+              <label className="block text-sm font-medium text-gray-300 mb-1.5 flex items-center gap-2">
                 <Phone className="w-4 h-4" />
                 Phone
               </label>
@@ -241,7 +241,7 @@ export default function ProfilePage() {
                   placeholder="+1234567890"
                 />
               ) : (
-                <p className="text-gray-900">{user.phone || 'Not provided'}</p>
+                <p className="text-gray-100">{user.phone || 'Not provided'}</p>
               )}
             </div>
           </div>
@@ -249,13 +249,13 @@ export default function ProfilePage() {
 
         {/* Location */}
         <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-primary-600" />
+          <h3 className="text-lg font-semibold text-gray-100 mb-4 flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-primary-400" />
             Location
           </h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">City</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">City</label>
               {editing ? (
                 <Input
                   value={formData.city}
@@ -263,12 +263,12 @@ export default function ProfilePage() {
                   placeholder="Enter city"
                 />
               ) : (
-                <p className="text-gray-900">{formData.city || 'Not provided'}</p>
+                <p className="text-gray-100">{formData.city || 'Not provided'}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">District</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">District</label>
               {editing ? (
                 <Input
                   value={formData.district}
@@ -276,12 +276,12 @@ export default function ProfilePage() {
                   placeholder="Enter district"
                 />
               ) : (
-                <p className="text-gray-900">{formData.district || 'Not provided'}</p>
+                <p className="text-gray-100">{formData.district || 'Not provided'}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Area/Neighborhood</label>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">Area/Neighborhood</label>
               {editing ? (
                 <Input
                   value={formData.area}
@@ -289,7 +289,7 @@ export default function ProfilePage() {
                   placeholder="Enter area"
                 />
               ) : (
-                <p className="text-gray-900">{formData.area || 'Not provided'}</p>
+                <p className="text-gray-100">{formData.area || 'Not provided'}</p>
               )}
             </div>
           </div>
@@ -297,30 +297,30 @@ export default function ProfilePage() {
 
         {/* Statistics */}
         <Card className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Award className="w-5 h-5 text-primary-600" />
+          <h3 className="text-lg font-semibold text-gray-100 mb-4 flex items-center gap-2">
+            <Award className="w-5 h-5 text-primary-400" />
             Statistics
           </h3>
           <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <p className="text-2xl font-bold text-gray-900">{stats.matchesScored}</p>
-              <p className="text-sm text-gray-600 mt-1">Matches Scored</p>
+            <div className="text-center p-4 bg-gray-800 rounded-lg border border-gray-700">
+              <p className="text-2xl font-bold text-gray-100">{stats.matchesScored}</p>
+              <p className="text-sm text-gray-400 mt-1">Matches Scored</p>
             </div>
-            <div className="text-center p-4 bg-gray-50 rounded-lg">
-              <p className="text-2xl font-bold text-gray-900">{stats.accuracyScore}%</p>
-              <p className="text-sm text-gray-600 mt-1">Accuracy Score</p>
+            <div className="text-center p-4 bg-gray-800 rounded-lg border border-gray-700">
+              <p className="text-2xl font-bold text-gray-100">{stats.accuracyScore}%</p>
+              <p className="text-sm text-gray-400 mt-1">Accuracy Score</p>
             </div>
           </div>
         </Card>
 
         {/* Verification Status */}
         {stats.verificationStatus === 'pending' && (
-          <Card className="p-6 bg-yellow-50 border-yellow-200">
+          <Card className="p-6 bg-yellow-500/10 border-yellow-500/20">
             <div className="flex items-start gap-3">
-              <Shield className="w-5 h-5 text-yellow-600 mt-0.5" />
+              <Shield className="w-5 h-5 text-yellow-400 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Verification Pending</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-semibold text-gray-100 mb-1">Verification Pending</h3>
+                <p className="text-sm text-gray-300">
                   Your scorer account is pending verification. Once verified, you'll have access to
                   additional features.
                 </p>

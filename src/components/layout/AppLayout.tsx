@@ -44,7 +44,7 @@ export default function AppLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 safe-bottom">
+    <div className="min-h-screen bg-gray-900 pb-20 lg:pb-4 safe-bottom">
       <Header
         title={title}
         subtitle={subtitle}
@@ -52,7 +52,7 @@ export default function AppLayout({
         actions={headerActions}
         onBack={onBack}
       />
-      <main className="container-mobile py-4">{children}</main>
+      <main className="w-full mx-auto py-4 lg:py-6 px-4 sm:px-6 lg:px-8 max-w-7xl">{children}</main>
       <BottomNav />
     </div>
   );

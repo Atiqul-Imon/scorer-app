@@ -91,14 +91,14 @@ export default function WicketPopup({
   const remainingPlayers = availablePlayers.filter((p) => p.id !== dismissedBatterId);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 safe-area">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 safe-area">
       <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Wicket - {dismissedBatterName}</h2>
+            <h2 className="text-xl font-bold text-gray-100">Wicket - {dismissedBatterName}</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+              className="p-2 hover:bg-gray-700 rounded-lg touch-target text-gray-300 hover:text-gray-100"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -108,7 +108,7 @@ export default function WicketPopup({
           <div className="space-y-4">
             {/* Dismissal Type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Dismissal Type</label>
+              <label className="block text-sm font-medium text-gray-200 mb-2">Dismissal Type</label>
               <div className="grid grid-cols-2 gap-2">
                 {dismissalTypes.map((type) => (
                   <Button
@@ -127,15 +127,15 @@ export default function WicketPopup({
             {/* Fielder (if required) */}
             {requiresFielder && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Fielder</label>
+                <label className="block text-sm font-medium text-gray-200 mb-2">Fielder</label>
                 <select
                   value={fielderId}
                   onChange={(e) => setFielderId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base text-gray-100"
                 >
-                  <option value="">Select fielder</option>
+                  <option value="" className="bg-gray-800">Select fielder</option>
                   {availableFielders.map((player) => (
-                    <option key={player.id} value={player.id}>
+                    <option key={player.id} value={player.id} className="bg-gray-800">
                       {player.name}
                     </option>
                   ))}
@@ -145,16 +145,16 @@ export default function WicketPopup({
 
             {/* Incoming Batter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Incoming Batter *</label>
+              <label className="block text-sm font-medium text-gray-200 mb-2">Incoming Batter *</label>
               <select
                 value={incomingBatterId}
                 onChange={(e) => setIncomingBatterId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-base text-gray-100"
                 required
               >
-                <option value="">Select incoming batter</option>
+                <option value="" className="bg-gray-800">Select incoming batter</option>
                 {remainingPlayers.map((player) => (
-                  <option key={player.id} value={player.id}>
+                  <option key={player.id} value={player.id} className="bg-gray-800">
                     {player.name}
                   </option>
                 ))}

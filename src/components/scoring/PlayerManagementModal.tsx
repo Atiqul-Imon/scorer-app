@@ -119,7 +119,7 @@ export default function PlayerManagementModal({
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-gray-900">{teamName}</h3>
+          <h3 className="text-base font-semibold text-gray-100">{teamName}</h3>
           <div className="flex items-center gap-2">
             <Input
               value={newPlayerName}
@@ -147,7 +147,7 @@ export default function PlayerManagementModal({
           {players.map((player) => {
             if (isEditing(player.id)) {
               return (
-                <div key={player.id} className="flex items-center gap-2 p-2 border rounded-lg">
+                <div key={player.id} className="flex items-center gap-2 p-2 border border-gray-600 rounded-lg bg-gray-800">
                   <Input
                     value={newPlayerName}
                     onChange={(e) => setNewPlayerName(e.target.value)}
@@ -182,20 +182,20 @@ export default function PlayerManagementModal({
               );
             }
             return (
-              <div key={player.id} className="flex items-center justify-between p-2 border rounded-lg">
-                <span className="text-sm font-medium">{player.name}</span>
+              <div key={player.id} className="flex items-center justify-between p-2 border border-gray-600 rounded-lg bg-gray-800">
+                <span className="text-sm font-medium text-gray-100">{player.name}</span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleEditPlayer(team, player.id)}
-                    className="p-1 hover:bg-gray-100 rounded"
+                    className="p-1 hover:bg-gray-700 rounded text-gray-300 hover:text-gray-100"
                   >
-                    <Edit2 className="w-4 h-4 text-primary-600" />
+                    <Edit2 className="w-4 h-4 text-primary-400" />
                   </button>
                   <button
                     onClick={() => handleDeletePlayer(team, player.id)}
-                    className="p-1 hover:bg-red-100 rounded"
+                    className="p-1 hover:bg-red-900/30 rounded text-gray-300 hover:text-red-400"
                   >
-                    <Trash2 className="w-4 h-4 text-red-600" />
+                    <Trash2 className="w-4 h-4 text-red-400" />
                   </button>
                 </div>
               </div>
@@ -211,10 +211,10 @@ export default function PlayerManagementModal({
       <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Manage Players</h2>
+            <h2 className="text-xl font-bold text-gray-100">Manage Players</h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+              className="p-2 hover:bg-gray-700 rounded-lg touch-target text-gray-300 hover:text-gray-100"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -227,7 +227,7 @@ export default function PlayerManagementModal({
               {renderPlayerList('away', awayPlayers)}
             </div>
 
-            <div className="flex gap-3 pt-4 border-t">
+            <div className="flex gap-3 pt-4 border-t border-gray-700">
               <Button variant="outline" size="lg" fullWidth onClick={onClose} disabled={saving}>
                 Cancel
               </Button>

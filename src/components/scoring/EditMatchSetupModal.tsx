@@ -59,13 +59,13 @@ export default function EditMatchSetupModal({
       <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-gray-100 flex items-center gap-2">
               <Trophy className="w-5 h-5" />
               Edit Toss Result
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+              className="p-2 hover:bg-gray-700 rounded-lg touch-target text-gray-300 hover:text-gray-100"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -74,14 +74,14 @@ export default function EditMatchSetupModal({
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Toss Winner</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Toss Winner</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => setTossWinner('home')}
                   className={`p-4 rounded-lg border-2 transition-all ${
                     tossWinner === 'home'
-                      ? 'border-primary-600 bg-primary-50 text-primary-900'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      ? 'border-primary-500 bg-primary-500/20 text-primary-300'
+                      : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
                   }`}
                 >
                   <p className="font-semibold">{homeTeamName}</p>
@@ -90,8 +90,8 @@ export default function EditMatchSetupModal({
                   onClick={() => setTossWinner('away')}
                   className={`p-4 rounded-lg border-2 transition-all ${
                     tossWinner === 'away'
-                      ? 'border-primary-600 bg-primary-50 text-primary-900'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      ? 'border-primary-500 bg-primary-500/20 text-primary-300'
+                      : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
                   }`}
                 >
                   <p className="font-semibold">{awayTeamName}</p>
@@ -101,14 +101,14 @@ export default function EditMatchSetupModal({
 
             {tossWinner && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Decision</label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Decision</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => setTossDecision('bat')}
                     className={`p-4 rounded-lg border-2 transition-all ${
                       tossDecision === 'bat'
-                        ? 'border-primary-600 bg-primary-50 text-primary-900'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        ? 'border-primary-500 bg-primary-500/20 text-primary-300'
+                        : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
                     }`}
                   >
                     <p className="font-semibold">Bat</p>
@@ -117,8 +117,8 @@ export default function EditMatchSetupModal({
                     onClick={() => setTossDecision('bowl')}
                     className={`p-4 rounded-lg border-2 transition-all ${
                       tossDecision === 'bowl'
-                        ? 'border-primary-600 bg-primary-50 text-primary-900'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        ? 'border-primary-500 bg-primary-500/20 text-primary-300'
+                        : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
                     }`}
                   >
                     <p className="font-semibold">Bowl</p>

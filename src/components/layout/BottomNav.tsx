@@ -49,7 +49,7 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 safe-bottom z-40 shadow-lg">
+    <nav className="fixed bottom-0 left-0 right-0 bg-gray-800 border-t border-gray-700 safe-bottom z-40 shadow-lg lg:hidden">
       <div className="container-mobile">
         <div className="flex items-center justify-around py-2">
           {navItems.map((item) => {
@@ -63,8 +63,8 @@ export default function BottomNav() {
                 className={cn(
                   'flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors touch-target min-w-[60px]',
                   active
-                    ? 'text-primary-600'
-                    : 'text-gray-600 hover:text-gray-900'
+                    ? 'text-primary-400'
+                    : 'text-gray-400 hover:text-gray-200'
                 )}
               >
                 <Icon className={cn('w-5 h-5', active && 'text-primary-600')} />

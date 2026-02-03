@@ -22,7 +22,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: '#16a34a',
+  themeColor: '#111827', // Dark gray for dark theme
 };
 
 export default function RootLayout({
@@ -32,7 +32,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className="min-h-screen bg-gray-50">
+      <body className="min-h-screen bg-gray-900">
         <AuthProvider>
           <ToastProvider>
             {children}

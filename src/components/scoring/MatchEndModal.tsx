@@ -76,13 +76,13 @@ export default function MatchEndModal({
       <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <h2 className="text-xl font-bold text-gray-100 flex items-center gap-2">
               <Trophy className="w-5 h-5" />
               Match Complete
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+              className="p-2 hover:bg-gray-700 rounded-lg touch-target text-gray-300 hover:text-gray-100"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -92,26 +92,26 @@ export default function MatchEndModal({
           <div className="space-y-6">
             {/* Final Scores */}
             <div className="space-y-3">
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">{homeTeamName}</p>
-                <p className="text-lg font-bold text-gray-900">{formatScore(homeScore)}</p>
+              <div className="p-3 bg-gray-800 rounded-lg border border-gray-700">
+                <p className="text-sm text-gray-400 mb-1">{homeTeamName}</p>
+                <p className="text-lg font-bold text-gray-100">{formatScore(homeScore)}</p>
               </div>
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">{awayTeamName}</p>
-                <p className="text-lg font-bold text-gray-900">{formatScore(awayScore)}</p>
+              <div className="p-3 bg-gray-800 rounded-lg border border-gray-700">
+                <p className="text-sm text-gray-400 mb-1">{awayTeamName}</p>
+                <p className="text-lg font-bold text-gray-100">{formatScore(awayScore)}</p>
               </div>
             </div>
 
             {/* Winner */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Match Result</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Match Result</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => setWinner('home')}
                   className={`p-3 rounded-lg border-2 transition-all touch-target ${
                     winner === 'home'
-                      ? 'border-primary-600 bg-primary-50 text-primary-900'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      ? 'border-primary-500 bg-primary-500/20 text-primary-300'
+                      : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
                   }`}
                 >
                   <p className="font-semibold text-sm">{homeTeamName}</p>
@@ -120,8 +120,8 @@ export default function MatchEndModal({
                   onClick={() => setWinner('away')}
                   className={`p-3 rounded-lg border-2 transition-all touch-target ${
                     winner === 'away'
-                      ? 'border-primary-600 bg-primary-50 text-primary-900'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      ? 'border-primary-500 bg-primary-500/20 text-primary-300'
+                      : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
                   }`}
                 >
                   <p className="font-semibold text-sm">{awayTeamName}</p>
@@ -130,8 +130,8 @@ export default function MatchEndModal({
                   onClick={() => setWinner('tie')}
                   className={`p-3 rounded-lg border-2 transition-all touch-target ${
                     winner === 'tie'
-                      ? 'border-primary-600 bg-primary-50 text-primary-900'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      ? 'border-primary-500 bg-primary-500/20 text-primary-300'
+                      : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
                   }`}
                 >
                   <p className="font-semibold text-sm">Tie</p>
@@ -140,8 +140,8 @@ export default function MatchEndModal({
                   onClick={() => setWinner('no_result')}
                   className={`p-3 rounded-lg border-2 transition-all touch-target ${
                     winner === 'no_result'
-                      ? 'border-primary-600 bg-primary-50 text-primary-900'
-                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      ? 'border-primary-500 bg-primary-500/20 text-primary-300'
+                      : 'border-gray-600 bg-gray-800 text-gray-300 hover:border-gray-500'
                   }`}
                 >
                   <p className="font-semibold text-sm">No Result</p>
@@ -165,7 +165,7 @@ export default function MatchEndModal({
             {/* Key Performers */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">Key Performers (Optional)</label>
+                <label className="block text-sm font-medium text-gray-300">Key Performers (Optional)</label>
                 {!addingPerformer && (
                   <Button
                     variant="outline"
@@ -178,15 +178,15 @@ export default function MatchEndModal({
               </div>
 
               {addingPerformer && (
-                <div className="space-y-2 p-3 bg-gray-50 rounded-lg mb-2">
+                <div className="space-y-2 p-3 bg-gray-800 rounded-lg mb-2 border border-gray-700">
                   <select
                     value={newPerformer.playerId}
                     onChange={(e) => setNewPerformer({ ...newPerformer, playerId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-sm text-gray-100"
                   >
-                    <option value="">Select player</option>
+                    <option value="" className="bg-gray-900">Select player</option>
                     {availablePlayers.map((player) => (
-                      <option key={player.id} value={player.id}>
+                      <option key={player.id} value={player.id} className="bg-gray-900">
                         {player.name}
                       </option>
                     ))}
@@ -215,14 +215,14 @@ export default function MatchEndModal({
               )}
 
               {keyPerformers.map((performer, index) => (
-                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg mb-2">
+                <div key={index} className="flex items-center justify-between p-2 bg-gray-800 rounded-lg mb-2 border border-gray-700">
                   <div className="flex-1">
-                    <p className="text-sm font-medium">{performer.playerName}</p>
-                    <p className="text-xs text-gray-600">{performer.role} - {performer.performance}</p>
+                    <p className="text-sm font-medium text-gray-100">{performer.playerName}</p>
+                    <p className="text-xs text-gray-400">{performer.role} - {performer.performance}</p>
                   </div>
                   <button
                     onClick={() => handleRemovePerformer(index)}
-                    className="p-1 text-red-600 hover:bg-red-50 rounded touch-target"
+                    className="p-1 text-red-400 hover:bg-red-900/30 rounded touch-target"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -232,21 +232,21 @@ export default function MatchEndModal({
 
             {/* Notes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Match Notes (Optional)</label>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Match Notes (Optional)</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Any additional notes about the match..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm text-gray-100 placeholder-gray-500"
                 rows={3}
               />
             </div>
 
             {/* Warning */}
-            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
               <div className="flex items-start gap-2">
-                <Lock className="w-4 h-4 text-yellow-600 mt-0.5" />
-                <p className="text-xs text-yellow-800">
+                <Lock className="w-4 h-4 text-yellow-400 mt-0.5" />
+                <p className="text-xs text-yellow-300">
                   Once you complete the match, it will be locked and cannot be edited.
                 </p>
               </div>

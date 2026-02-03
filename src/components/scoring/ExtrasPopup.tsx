@@ -30,18 +30,18 @@ export default function ExtrasPopup({ isOpen, onClose, onConfirm, type }: Extras
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 safe-area">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 safe-area">
       <Card className="w-full max-w-sm">
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-gray-100">
               {type === 'wide' || type === 'no_ball' 
                 ? `${typeLabel} - Additional Runs?`
                 : typeLabel}
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg touch-target"
+              className="p-2 hover:bg-gray-700 rounded-lg touch-target text-gray-300 hover:text-gray-100"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
@@ -49,7 +49,7 @@ export default function ExtrasPopup({ isOpen, onClose, onConfirm, type }: Extras
           </div>
 
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-300">
               {type === 'wide' || type === 'no_ball' 
                 ? `Did the ${typeLabel.toLowerCase()} result in additional runs? (e.g., wide 4, no-ball 6)`
                 : `How many runs from the ${typeLabel.toLowerCase()}? (1-6 runs)`}

@@ -50,8 +50,8 @@ export default function Header({
 
   return (
     <>
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 safe-top shadow-sm">
-        <div className="container-mobile">
+      <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-50 safe-top shadow-lg">
+        <div className="w-full mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
           {/* Main Header */}
           <div className="flex items-center justify-between py-3">
             {/* Left Section */}
@@ -59,7 +59,7 @@ export default function Header({
               {showBack && (
                 <button
                   onClick={handleBack}
-                  className="p-2 -ml-2 text-gray-600 hover:text-gray-900 transition-colors touch-target"
+                  className="p-2 -ml-2 text-gray-300 hover:text-gray-100 transition-colors touch-target"
                   aria-label="Go back"
                 >
                   <ArrowLeft className="w-5 h-5" />
@@ -67,15 +67,15 @@ export default function Header({
               )}
               <div className="flex-1 min-w-0">
                 {title && (
-                  <h1 className="text-lg font-bold text-gray-900 truncate">{title}</h1>
+                  <h1 className="text-lg lg:text-xl font-bold text-gray-100 truncate">{title}</h1>
                 )}
                 {subtitle && (
-                  <p className="text-sm text-gray-600 truncate">{subtitle}</p>
+                  <p className="text-sm lg:text-base text-gray-300 truncate">{subtitle}</p>
                 )}
                 {!title && !subtitle && (
                   <div>
-                    <h1 className="text-lg font-bold text-gray-900">Scorenews Scorer</h1>
-                    <p className="text-xs text-gray-500">
+                    <h1 className="text-lg lg:text-xl font-bold text-gray-100">Scorenews Scorer</h1>
+                    <p className="text-xs lg:text-sm text-gray-400">
                       {user?.scorerProfile?.scorerId || 'Scorer App'}
                     </p>
                   </div>
@@ -105,7 +105,7 @@ export default function Header({
               <div className="relative">
                 <button
                   onClick={() => setShowMenu(!showMenu)}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors touch-target"
+                  className="p-2 rounded-lg hover:bg-gray-700 transition-colors touch-target"
                   aria-label="User menu"
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white text-sm font-semibold">
@@ -120,10 +120,10 @@ export default function Header({
                       className="fixed inset-0 z-40"
                       onClick={() => setShowMenu(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                      <div className="px-4 py-3 border-b border-gray-200">
-                        <p className="font-semibold text-gray-900 text-sm">{user?.name}</p>
-                        <p className="text-xs text-gray-600 truncate">{user?.email}</p>
+                    <div className="absolute right-0 mt-2 w-56 bg-gray-800 rounded-lg shadow-xl border border-gray-700 py-2 z-50">
+                      <div className="px-4 py-3 border-b border-gray-700">
+                        <p className="font-semibold text-gray-100 text-sm">{user?.name}</p>
+                        <p className="text-xs text-gray-400 truncate">{user?.email}</p>
                         {user?.scorerProfile && (
                           <div className="mt-2 flex items-center gap-2">
                             <Badge
@@ -143,14 +143,14 @@ export default function Header({
                       <Link
                         href="/profile"
                         onClick={() => setShowMenu(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-700 transition-colors"
                       >
                         <User className="w-4 h-4" />
                         Profile
                       </Link>
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-red-900/30 transition-colors text-left"
                       >
                         <LogOut className="w-4 h-4" />
                         Logout
@@ -169,8 +169,8 @@ export default function Header({
                 href="/dashboard"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors touch-target ${
                   isActive('/dashboard')
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'bg-primary-600/20 text-primary-400 border border-primary-500/30'
+                    : 'text-gray-300 hover:bg-gray-700'
                 }`}
               >
                 Dashboard
@@ -179,8 +179,8 @@ export default function Header({
                 href="/matches"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors touch-target ${
                   isActive('/matches')
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'bg-primary-600/20 text-primary-400 border border-primary-500/30'
+                    : 'text-gray-300 hover:bg-gray-700'
                 }`}
               >
                 Matches
@@ -189,8 +189,8 @@ export default function Header({
                 href="/profile"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors touch-target ${
                   isActive('/profile')
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    ? 'bg-primary-600/20 text-primary-400 border border-primary-500/30'
+                    : 'text-gray-300 hover:bg-gray-700'
                 }`}
               >
                 Profile
