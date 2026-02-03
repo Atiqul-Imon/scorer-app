@@ -38,7 +38,7 @@ const nextConfig = {
         headers: [
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN', // Changed from DENY to allow embedding in Facebook Messenger
           },
           {
             key: 'X-Content-Type-Options',

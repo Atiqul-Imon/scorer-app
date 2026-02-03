@@ -30,24 +30,24 @@ const handle401Redirect = (error: AxiosError) => {
       }
       
       const currentPath = window.location.pathname;
-      // Only redirect if not already on login/register/home page
-      if (!currentPath.includes('/login') && 
-          !currentPath.includes('/register') && 
-          currentPath !== '/') {
+      // Define public paths that should never redirect
+      const publicPaths = ['/login', '/register', '/'];
+      const isPublicPage = publicPaths.some(path => currentPath === path || currentPath.startsWith(path + '/'));
+      
+      // Clear auth data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // Only redirect if not on a public page
+      if (!isPublicPage) {
         isRedirecting = true;
         redirectCooldown = now;
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
         // Use replace to avoid adding to history
         window.location.replace('/login');
         // Reset flag after redirect
         setTimeout(() => {
           isRedirecting = false;
         }, 2000);
-      } else {
-        // Already on auth page, just clear storage
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
       }
     }
   }

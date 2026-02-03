@@ -33,28 +33,20 @@ export default function HomePage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
 
   // Only redirect if authenticated and not loading
+  // Use a small delay to prevent flash of content
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      router.replace('/dashboard');
+      // Small delay to prevent redirect loops
+      const timer = setTimeout(() => {
+        router.replace('/dashboard');
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [isAuthenticated, authLoading, router]);
 
-  // Show loading state while checking auth
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-          <p className="text-gray-300">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't show homepage if authenticated (will redirect)
-  if (isAuthenticated) {
-    return null;
-  }
+  // Show minimal loading state while checking auth (don't block homepage)
+  // Always show homepage content, even while loading
+  // This prevents forced redirects to login
 
   return (
     <div className="min-h-screen bg-gray-900 flex flex-col">

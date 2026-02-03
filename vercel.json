@@ -9,6 +9,18 @@
       "source": "/api/:path*",
       "destination": "/api/:path*"
     }
+  ],
+  "redirects": [],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        }
+      ]
+    }
   ]
 }
 

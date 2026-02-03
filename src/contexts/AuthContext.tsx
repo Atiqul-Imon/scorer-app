@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error?.response?.status === 401) {
         setUser(null);
         if (typeof window !== 'undefined') {
+          // Only clear storage, don't redirect (let the page handle it)
           localStorage.removeItem('token');
           localStorage.removeItem('user');
         }

@@ -53,12 +53,18 @@ class APIClient {
       (response) => response,
       async (error: AxiosError) => {
         if (error.response?.status === 401) {
-          // Handle unauthorized - redirect to login
+          // Handle unauthorized - only redirect from protected pages
           if (typeof window !== 'undefined') {
+            const currentPath = window.location.pathname;
+            const publicPaths = ['/login', '/register', '/'];
+            const isPublicPage = publicPaths.some(path => currentPath === path || currentPath.startsWith(path + '/'));
+            
+            // Clear auth data
             localStorage.removeItem('token');
             localStorage.removeItem('user');
-            // Prevent redirect loops
-            if (!window.location.pathname.includes('/login')) {
+            
+            // Only redirect if not on a public page
+            if (!isPublicPage) {
               window.location.href = '/login';
             }
           }
