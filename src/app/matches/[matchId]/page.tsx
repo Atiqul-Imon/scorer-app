@@ -12,7 +12,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { formatScore, formatDate } from '@/lib/utils';
 import type { CricketMatch } from '@/types';
-import { MapPin, Users, Edit2, Trophy, Clock, Calendar } from 'lucide-react';
+import { MapPin, Users, Edit2, Trophy, Clock, Calendar, Award, Globe, AlertCircle, PlayCircle, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function MatchDetailsPage() {
@@ -88,8 +88,8 @@ export default function MatchDetailsPage() {
       <AppLayout title="Match Details" showBack>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading match...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
+            <p className="text-gray-300">Loading match...</p>
           </div>
         </div>
       </AppLayout>
@@ -100,7 +100,8 @@ export default function MatchDetailsPage() {
     return (
       <AppLayout title="Match Details" showBack>
         <Card className="p-8 text-center max-w-md mx-auto">
-          <p className="text-gray-600 mb-4">{error || 'Match not found'}</p>
+          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <p className="text-gray-300 mb-4">{error || 'Match not found'}</p>
           <Button variant="primary" onClick={() => router.push('/matches')}>
             Go to Matches
           </Button>
@@ -111,6 +112,7 @@ export default function MatchDetailsPage() {
 
   const isLive = match.status === 'live';
   const isCompleted = match.status === 'completed';
+  const isUpcoming = match.status === 'upcoming';
   
   // Determine which page to link to based on match setup
   // @ts-ignore - matchSetup may not be in type yet
@@ -124,6 +126,31 @@ export default function MatchDetailsPage() {
       return `/matches/${matchId}/score`;
     } else {
       return `/matches/${matchId}/update`;
+    }
+  };
+
+  const getStatusBadge = () => {
+    if (isLive) {
+      return (
+        <Badge variant="success" className="flex items-center gap-1.5">
+          <PlayCircle className="w-3 h-3" />
+          Live
+        </Badge>
+      );
+    } else if (isCompleted) {
+      return (
+        <Badge variant="default" className="flex items-center gap-1.5">
+          <CheckCircle2 className="w-3 h-3" />
+          Completed
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="info" className="flex items-center gap-1.5">
+          <Clock className="w-3 h-3" />
+          Upcoming
+        </Badge>
+      );
     }
   };
 
@@ -148,180 +175,245 @@ export default function MatchDetailsPage() {
       showBack
       headerActions={headerActions}
     >
-      <div className="space-y-6">
-        {/* Current Score (if live or completed) */}
-        {(isLive || isCompleted) && match.currentScore && (
-          <Card className="p-6 bg-gradient-to-br from-primary-50 to-primary-100">
-            <div className="text-center mb-4">
-              <p className="text-sm text-gray-600 mb-4">Current Score</p>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 text-left">
-                    <p className="text-sm text-gray-600 mb-1">{match.teams.home.name}</p>
-                    <p className="text-3xl font-bold text-gray-900">
+      <div className="max-w-4xl mx-auto space-y-6 lg:space-y-8">
+        {/* Status Badge & Current Score */}
+        <div className="space-y-4">
+          {/* Status Badge */}
+          <div className="flex justify-center lg:justify-start">
+            {getStatusBadge()}
+          </div>
+
+          {/* Current Score (if live or completed) */}
+          {(isLive || isCompleted) && match.currentScore && (
+            <Card className="p-6 lg:p-8 bg-gradient-to-br from-primary-500/20 via-primary-500/10 to-gray-800 border-primary-500/30">
+              <div className="text-center">
+                <p className="text-xs lg:text-sm text-gray-400 mb-4 uppercase tracking-wide">Current Score</p>
+                <div className="grid grid-cols-3 gap-4 items-center">
+                  <div className="text-left">
+                    <p className="text-xs lg:text-sm text-gray-400 mb-2 truncate">{match.teams.home.name}</p>
+                    <p className="text-3xl lg:text-4xl font-bold text-gray-100">
                       {formatScore(match.currentScore.home)}
                     </p>
                   </div>
-                  <div className="px-4">
-                    <span className="text-gray-400 text-xl">vs</span>
+                  <div className="px-2">
+                    <span className="text-gray-500 text-lg lg:text-xl font-medium">VS</span>
                   </div>
-                  <div className="flex-1 text-right">
-                    <p className="text-sm text-gray-600 mb-1">{match.teams.away.name}</p>
-                    <p className="text-3xl font-bold text-gray-900">
+                  <div className="text-right">
+                    <p className="text-xs lg:text-sm text-gray-400 mb-2 truncate">{match.teams.away.name}</p>
+                    <p className="text-3xl lg:text-4xl font-bold text-gray-100">
                       {formatScore(match.currentScore.away)}
                     </p>
                   </div>
                 </div>
               </div>
-            </div>
-          </Card>
-        )}
+            </Card>
+          )}
+        </div>
 
-        {/* Match Information */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Trophy className="w-5 h-5 text-primary-600" />
-            Match Information
-          </h2>
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm text-gray-600">Series/League</p>
-                <p className="text-base font-medium text-gray-900">{match.series}</p>
+        {/* Two Column Layout on Desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+          {/* Left Column */}
+          <div className="space-y-6 lg:space-y-8">
+            {/* Match Information */}
+            <Card className="p-6 lg:p-8 bg-gradient-to-br from-primary-500/10 to-gray-800 border-primary-500/20">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-primary-500/20 flex items-center justify-center">
+                  <Trophy className="w-5 h-5 text-primary-400" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-100">Match Information</h2>
               </div>
-            </div>
+              <div className="space-y-4">
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/50">
+                  <Calendar className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-400 mb-1">Series/League</p>
+                    <p className="text-base font-medium text-gray-100 truncate">{match.series}</p>
+                  </div>
+                </div>
 
-            <div className="flex items-start gap-3">
-              <Clock className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm text-gray-600">Start Time</p>
-                <p className="text-base font-medium text-gray-900">{formatDate(match.startTime)}</p>
-              </div>
-            </div>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/50">
+                  <Clock className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-400 mb-1">Start Time</p>
+                    <p className="text-base font-medium text-gray-100">{formatDate(match.startTime)}</p>
+                  </div>
+                </div>
 
-            <div className="flex items-start gap-3">
-              <Trophy className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-sm text-gray-600">Format</p>
-                <p className="text-base font-medium text-gray-900">
-                  {match.format.toUpperCase()}
-                </p>
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/50">
+                  <Award className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-400 mb-1">Format</p>
+                    <p className="text-base font-medium text-gray-100">
+                      {match.format.toUpperCase()}
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        </Card>
+            </Card>
 
-        {/* Teams */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-primary-600" />
-            Teams
-          </h2>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-semibold text-gray-900">{match.teams.home.name}</p>
-                <p className="text-sm text-gray-600">{match.teams.home.shortName}</p>
+            {/* Venue */}
+            <Card className="p-6 lg:p-8 bg-gradient-to-br from-green-500/10 to-gray-800 border-green-500/20">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-green-400" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-100">Venue</h2>
               </div>
-              {match.currentScore?.home && (
-                <div className="text-right">
-                  <p className="text-xl font-bold text-gray-900">
-                    {formatScore(match.currentScore.home)}
+              <div className="space-y-3">
+                <div>
+                  <p className="text-base font-semibold text-gray-100 mb-1">{match.venue.name}</p>
+                  <p className="text-sm text-gray-400">
+                    {match.venue.city}
+                    {match.venue.country && `, ${match.venue.country}`}
                   </p>
                 </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-semibold text-gray-900">{match.teams.away.name}</p>
-                <p className="text-sm text-gray-600">{match.teams.away.shortName}</p>
+                {match.venue.address && (
+                  <div className="pt-2 border-t border-gray-700">
+                    <p className="text-sm text-gray-400">{match.venue.address}</p>
+                  </div>
+                )}
               </div>
-              {match.currentScore?.away && (
-                <div className="text-right">
-                  <p className="text-xl font-bold text-gray-900">
-                    {formatScore(match.currentScore.away)}
-                  </p>
-                </div>
-              )}
-            </div>
+            </Card>
           </div>
-        </Card>
 
-        {/* Venue */}
-        <Card className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-primary-600" />
-            Venue
-          </h2>
-          <div className="space-y-2">
-            <p className="text-base font-medium text-gray-900">{match.venue.name}</p>
-            <p className="text-sm text-gray-600">
-              {match.venue.city}
-              {match.venue.country && `, ${match.venue.country}`}
-            </p>
-            {match.venue.address && (
-              <p className="text-sm text-gray-500">{match.venue.address}</p>
+          {/* Right Column */}
+          <div className="space-y-6 lg:space-y-8">
+            {/* Teams */}
+            <Card className="p-6 lg:p-8 bg-gradient-to-br from-blue-500/10 to-gray-800 border-blue-500/20">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                  <Users className="w-5 h-5 text-blue-400" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-100">Teams</h2>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50 border border-gray-700/50">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-100 truncate">{match.teams.home.name}</p>
+                    <p className="text-sm text-gray-400 truncate">{match.teams.home.shortName}</p>
+                  </div>
+                  {match.currentScore?.home && (
+                    <div className="text-right ml-4 flex-shrink-0">
+                      <p className="text-xl lg:text-2xl font-bold text-gray-100">
+                        {formatScore(match.currentScore.home)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-center py-2">
+                  <span className="text-gray-500 text-sm font-medium">VS</span>
+                </div>
+
+                <div className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50 border border-gray-700/50">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-100 truncate">{match.teams.away.name}</p>
+                    <p className="text-sm text-gray-400 truncate">{match.teams.away.shortName}</p>
+                  </div>
+                  {match.currentScore?.away && (
+                    <div className="text-right ml-4 flex-shrink-0">
+                      <p className="text-xl lg:text-2xl font-bold text-gray-100">
+                        {formatScore(match.currentScore.away)}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            {/* Location (if local match) */}
+            {match.localLocation && (
+              <Card className="p-6 lg:p-8 bg-gradient-to-br from-purple-500/10 to-gray-800 border-purple-500/20">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                    <Globe className="w-5 h-5 text-purple-400" />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-100">Location Details</h2>
+                </div>
+                <div className="space-y-3">
+                  {match.localLocation.city && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/50">
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-400 mb-1">City</p>
+                        <p className="text-sm font-medium text-gray-100">{match.localLocation.city}</p>
+                      </div>
+                    </div>
+                  )}
+                  {match.localLocation.district && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/50">
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-400 mb-1">District</p>
+                        <p className="text-sm font-medium text-gray-100">{match.localLocation.district}</p>
+                      </div>
+                    </div>
+                  )}
+                  {match.localLocation.area && (
+                    <div className="flex items-start gap-3 p-3 rounded-lg bg-gray-800/50">
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-400 mb-1">Area</p>
+                        <p className="text-sm font-medium text-gray-100">{match.localLocation.area}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* League (if applicable) */}
+            {match.localLeague && (
+              <Card className="p-6 lg:p-8 bg-gradient-to-br from-amber-500/10 to-gray-800 border-amber-500/20">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                    <Award className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-100">League</h2>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-base font-semibold text-gray-100 mb-1">{match.localLeague.name}</p>
+                    <p className="text-sm text-gray-400">
+                      {match.localLeague.level} • Season {match.localLeague.season}
+                    </p>
+                  </div>
+                </div>
+              </Card>
             )}
           </div>
-        </Card>
-
-        {/* Location (if local match) */}
-        {match.localLocation && (
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Location Details</h2>
-            <div className="space-y-2">
-              {match.localLocation.city && (
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">City:</span> {match.localLocation.city}
-                </p>
-              )}
-              {match.localLocation.district && (
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">District:</span> {match.localLocation.district}
-                </p>
-              )}
-              {match.localLocation.area && (
-                <p className="text-sm text-gray-600">
-                  <span className="font-medium">Area:</span> {match.localLocation.area}
-                </p>
-              )}
-            </div>
-          </Card>
-        )}
-
-        {/* League (if applicable) */}
-        {match.localLeague && (
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">League</h2>
-            <div className="space-y-2">
-              <p className="text-base font-medium text-gray-900">{match.localLeague.name}</p>
-              <p className="text-sm text-gray-600">
-                {match.localLeague.level} • Season {match.localLeague.season}
-              </p>
-            </div>
-          </Card>
-        )}
+        </div>
 
         {/* Match Note */}
         {match.matchNote && (
-          <Card className="p-6 bg-yellow-50 border-yellow-200">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Match Note</h3>
-            <p className="text-sm text-gray-700">{match.matchNote}</p>
+          <Card className="p-6 lg:p-8 bg-gradient-to-br from-yellow-500/10 to-gray-800 border-yellow-500/20">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-gray-100 mb-2">Match Note</h3>
+                <p className="text-sm text-gray-300 leading-relaxed">{match.matchNote}</p>
+              </div>
+            </div>
           </Card>
         )}
 
         {/* Actions */}
         {!isLive && (
-          <Button
-            variant="outline"
-            size="lg"
-            fullWidth
-            onClick={() => router.push('/matches')}
-          >
-            Back to Matches
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <Button
+              variant="outline"
+              size="lg"
+              fullWidth
+              onClick={() => router.push('/matches')}
+              className="sm:max-w-[200px]"
+            >
+              Back to Matches
+            </Button>
+            {isUpcoming && isLocalMatch && (
+              <Link href={getScorePageUrl()} className="flex-1">
+                <Button variant="primary" size="lg" fullWidth>
+                  {!isSetupComplete ? 'Start Setup' : 'Start Scoring'}
+                </Button>
+              </Link>
+            )}
+          </div>
         )}
       </div>
     </AppLayout>

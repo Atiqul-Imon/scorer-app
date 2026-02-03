@@ -8,6 +8,8 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Link from 'next/link';
 import { validatePhone, validateEmail } from '@/lib/utils';
+import PublicHeader from '@/components/layout/PublicHeader';
+import Footer from '@/components/layout/Footer';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -110,39 +112,45 @@ export default function RegisterPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-8">
-        <Card className="p-8 text-center max-w-md">
-          <div className="mb-4">
-            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
-              <svg
-                className="w-8 h-8 text-green-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
+      <div className="min-h-screen flex flex-col bg-gray-900">
+        <PublicHeader />
+        <main className="flex-1 flex items-center justify-center px-4 py-8">
+          <Card className="p-8 text-center max-w-md">
+            <div className="mb-4">
+              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto">
+                <svg
+                  className="w-8 h-8 text-green-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
             </div>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-100 mb-2">Registration Successful!</h2>
-          <p className="text-gray-300 mb-4">
-            Your scorer account has been created. You can now sign in.
-          </p>
-          <Button variant="primary" onClick={() => router.push('/login')}>
-            Go to Login
-          </Button>
-        </Card>
+            <h2 className="text-2xl font-bold text-gray-100 mb-2">Registration Successful!</h2>
+            <p className="text-gray-300 mb-4">
+              Your scorer account has been created. You can now sign in.
+            </p>
+            <Button variant="primary" onClick={() => router.push('/login')}>
+              Go to Login
+            </Button>
+          </Card>
+        </main>
+        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8 safe-top safe-bottom">
+    <div className="min-h-screen flex flex-col bg-gray-900">
+      <PublicHeader />
+      <main className="flex-1 flex items-center justify-center px-4 py-8 safe-top safe-bottom">
       <div className="w-full max-w-md">
         <Card className="p-6 md:p-8">
           <div className="text-center mb-6">
@@ -289,6 +297,8 @@ export default function RegisterPage() {
           </div>
         </Card>
       </div>
+      </main>
+      <Footer />
     </div>
   );
 }
