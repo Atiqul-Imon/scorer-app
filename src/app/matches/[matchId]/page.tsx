@@ -12,18 +12,22 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import { formatScore, formatDate } from '@/lib/utils';
 import type { CricketMatch } from '@/types';
-import { MapPin, Users, Edit2, Trophy, Clock, Calendar, Award, Globe, AlertCircle, PlayCircle, CheckCircle2 } from 'lucide-react';
+import { MapPin, Users, Edit2, Trophy, Clock, Calendar, Award, Globe, AlertCircle, PlayCircle, CheckCircle2, Power, PowerOff, Trash2, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/contexts/ToastContext';
 
 export default function MatchDetailsPage() {
   const router = useRouter();
   const params = useParams();
   const matchId = params.matchId as string;
   const { isAuthenticated, loading: authLoading } = useAuth();
+  const { success, error: showError } = useToast();
 
   const [match, setMatch] = useState<CricketMatch | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -80,6 +84,46 @@ export default function MatchDetailsPage() {
       setError(error.response?.data?.message || 'Failed to load match');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (newStatus: 'upcoming' | 'live' | 'completed' | 'cancelled') => {
+    if (!match) return;
+    
+    setUpdatingStatus(true);
+    try {
+      const response = await api.updateMatchStatus(matchId, newStatus);
+      setMatch(response.data);
+      const statusLabels: Record<string, string> = {
+        'upcoming': 'Match set to upcoming',
+        'live': 'Match is now live!',
+        'completed': 'Match marked as completed',
+        'cancelled': 'Match cancelled',
+      };
+      success(statusLabels[newStatus] || 'Status updated successfully');
+    } catch (error: any) {
+      showError(error.response?.data?.message || 'Failed to update match status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!match) return;
+    
+    if (!confirm('Are you sure you want to delete this match? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      await api.deleteMatch(matchId);
+      success('Match deleted successfully');
+      router.push('/matches');
+    } catch (error: any) {
+      showError(error.response?.data?.message || 'Failed to delete match');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -178,6 +222,22 @@ export default function MatchDetailsPage() {
       <div className="max-w-4xl mx-auto space-y-6 lg:space-y-8">
         {/* Status Badge & Current Score */}
         <div className="space-y-4">
+          {/* Pending Status Message for Upcoming Matches */}
+          {isUpcoming && isLocalMatch && (
+            <Card className="p-4 bg-amber-500/10 border-amber-500/20">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-gray-100 mb-1">Match is Pending</h3>
+                  <p className="text-sm text-gray-300">
+                    This match is currently in <strong>upcoming</strong> status. Complete the setup and start scoring when ready. 
+                    You can change the status to <strong>live</strong> when the match begins.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Status Badge */}
           <div className="flex justify-center lg:justify-start">
             {getStatusBadge()}
@@ -394,26 +454,146 @@ export default function MatchDetailsPage() {
           </Card>
         )}
 
-        {/* Actions */}
-        {!isLive && (
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <Button
-              variant="outline"
-              size="lg"
-              fullWidth
-              onClick={() => router.push('/matches')}
-              className="sm:max-w-[200px]"
-            >
-              Back to Matches
-            </Button>
-            {isUpcoming && isLocalMatch && (
-              <Link href={getScorePageUrl()} className="flex-1">
-                <Button variant="primary" size="lg" fullWidth>
-                  {!isSetupComplete ? 'Start Setup' : 'Start Scoring'}
+        {/* Status Management & Actions */}
+        {isLocalMatch && (
+          <Card className="p-6 lg:p-8 bg-gray-800/50 border-gray-700">
+            <h3 className="text-lg font-bold text-gray-100 mb-4">Match Management</h3>
+            
+            {/* Status Control Buttons */}
+            <div className="space-y-4">
+              {isUpcoming && (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-300 mb-3">Change match status:</p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      onClick={() => handleStatusUpdate('live')}
+                      disabled={updatingStatus}
+                      className="flex-1"
+                    >
+                      {updatingStatus ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <Power className="w-4 h-4 mr-2" />
+                          Start Live Scoring
+                        </>
+                      )}
+                    </Button>
+                    <Link href={getScorePageUrl()} className="flex-1">
+                      <Button variant="outline" size="lg" fullWidth>
+                        {!isSetupComplete ? 'Complete Setup' : 'Go to Scoring'}
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {isLive && (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-300 mb-3">Match is currently live. Manage status:</p>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Link href={getScorePageUrl()} className="flex-1">
+                      <Button variant="primary" size="lg" fullWidth>
+                        <Edit2 className="w-4 h-4 mr-2" />
+                        Continue Scoring
+                      </Button>
+                    </Link>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => handleStatusUpdate('upcoming')}
+                      disabled={updatingStatus}
+                      className="flex-1"
+                    >
+                      {updatingStatus ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <PowerOff className="w-4 h-4 mr-2" />
+                          Stop Live
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      onClick={() => handleStatusUpdate('completed')}
+                      disabled={updatingStatus}
+                      className="flex-1"
+                    >
+                      {updatingStatus ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Updating...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 mr-2" />
+                          Mark Completed
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {isCompleted && (
+                <div className="space-y-3">
+                  <div className="p-4 bg-gray-800/50 rounded-lg border border-gray-700/50">
+                    <p className="text-sm text-gray-300 mb-2">
+                      <strong className="text-gray-100">Match Completed:</strong> This match has been completed and is now locked. 
+                      You cannot modify or delete completed matches.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Delete Button (only for non-completed matches) */}
+              {!isCompleted && (
+                <div className="pt-4 border-t border-gray-700">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={handleDelete}
+                    disabled={deleting || updatingStatus}
+                    className="w-full text-red-400 border-red-500/30 hover:bg-red-500/10 hover:border-red-500/50"
+                  >
+                    {deleting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Match
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              {/* Back Button */}
+              <div className="pt-4 border-t border-gray-700">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  fullWidth
+                  onClick={() => router.push('/matches')}
+                >
+                  Back to Matches
                 </Button>
-              </Link>
-            )}
-          </div>
+              </div>
+            </div>
+          </Card>
         )}
       </div>
     </AppLayout>

@@ -115,7 +115,7 @@ export default function CreateMatchPage() {
       const response = await api.createMatch(matchData);
 
       if (response.success) {
-        success('Match created successfully!');
+        success('Match created successfully! It is currently in pending status. Complete the setup and start scoring when ready.');
         setTimeout(() => {
           router.push(`/matches/${response.data.matchId}`);
         }, 500);

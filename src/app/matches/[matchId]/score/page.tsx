@@ -167,6 +167,12 @@ export default function LiveScoringPage() {
     async (runs: number, ballType: string, isWicket: boolean = false, isFreeHit: boolean = false) => {
       if (!match) return;
 
+      // Check if match is live
+      if (match.status !== 'live') {
+        showError(`Match is ${match.status}. Please set the match status to "live" before scoring.`);
+        return;
+      }
+
       // Check network status
       if (!networkStatus.isOnline) {
         showError('Cannot record ball while offline. Please check your connection.');
@@ -1016,6 +1022,35 @@ export default function LiveScoringPage() {
       <div className="flex flex-col lg:flex-row lg:gap-6 lg:items-start">
         {/* Left Column: Match Info & Stats (Desktop) / Top Section (Mobile) */}
         <div className="flex-1 space-y-4 pb-4 lg:pb-0 lg:max-w-md xl:max-w-lg">
+          {/* Status Warning - Show if match is not live */}
+          {match.status !== 'live' && (
+            <Card className="p-4 bg-amber-500/10 border-amber-500/20">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-gray-100 mb-1">Match is {match.status}</h3>
+                  <p className="text-sm text-gray-300 mb-3">
+                    {match.status === 'upcoming' 
+                      ? 'Please set the match status to "live" before you can start scoring. Go to match details to change the status.'
+                      : match.status === 'completed'
+                      ? 'This match has been completed and is locked. You cannot record any more balls.'
+                      : 'This match is not live. Please set the status to "live" to continue scoring.'}
+                  </p>
+                  {match.status === 'upcoming' && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => router.push(`/matches/${matchId}`)}
+                      className="w-full sm:w-auto"
+                    >
+                      Go to Match Details
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Match Info */}
           <Card className="p-4 lg:p-6 bg-gradient-to-br from-primary-500/10 to-gray-800 border-primary-500/20">
             <div className="text-center">
@@ -1193,9 +1228,9 @@ export default function LiveScoringPage() {
 
         {/* Right Column: Scoring Interface (Desktop) / Bottom Section (Mobile) */}
         <div className="flex-1 lg:flex-shrink-0 lg:w-96 xl:w-[28rem] space-y-4 pb-4 lg:pb-0 lg:sticky lg:top-20">
-          {/* Live Scoring Interface - Disabled if match is locked */}
+          {/* Live Scoring Interface - Disabled if match is locked or not live */}
           {/* @ts-ignore */}
-          {!match.isLocked ? (
+          {!match.isLocked && match.status === 'live' ? (
             <LiveScoringInterface
               matchId={matchId}
               battingTeam={battingTeam}
@@ -1210,10 +1245,18 @@ export default function LiveScoringPage() {
             />
           ) : (
             <Card className="p-8 text-center">
-              <p className="text-lg font-semibold text-gray-100 mb-2">Match Completed</p>
-              <p className="text-sm text-gray-400">This match has been locked and cannot be edited.</p>
+              <p className="text-lg font-semibold text-gray-100 mb-2">
+                {match.status === 'completed' ? 'Match Completed' : 'Match Not Live'}
+              </p>
+              <p className="text-sm text-gray-400 mb-4">
+                {match.status === 'completed' 
+                  ? 'This match has been completed and is locked. You cannot record any more balls.'
+                  : match.status === 'upcoming'
+                  ? 'This match is in upcoming status. Please set it to "live" before scoring.'
+                  : 'This match is not live. Please set the status to "live" to continue scoring.'}
+              </p>
               <Button variant="primary" className="mt-4" onClick={() => router.push(`/matches/${matchId}`)}>
-                View Match Details
+                Go to Match Details
               </Button>
             </Card>
           )}

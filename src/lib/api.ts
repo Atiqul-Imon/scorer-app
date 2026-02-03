@@ -108,6 +108,17 @@ export const api = {
     return apiCall(() => apiClient.get<ApiResponse<CricketMatch>>(`/api/v1/scorer/matches/${matchId}`));
   },
 
+  async updateMatchStatus(matchId: string, status: 'upcoming' | 'live' | 'completed' | 'cancelled'): Promise<ApiResponse<CricketMatch>> {
+    return apiCall(() => apiClient.put<ApiResponse<CricketMatch>>(
+      `/api/v1/cricket/local/matches/${matchId}/status`,
+      { status }
+    ));
+  },
+
+  async deleteMatch(matchId: string): Promise<void> {
+    return apiCall(() => apiClient.delete(`/api/v1/cricket/local/matches/${matchId}`));
+  },
+
   async getScorerMatches(filters?: MatchFilters): Promise<ApiResponse<PaginatedResponse<CricketMatch>>> {
     const params = new URLSearchParams();
     if (filters?.status) params.append('status', filters.status);
