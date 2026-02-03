@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { memo, useState, useCallback } from 'react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { useToast } from '@/contexts/ToastContext';
 import { RotateCcw, Wifi, WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { usePreventDoubleClick } from '@/hooks/usePreventDoubleClick';
 
 interface LiveScoringInterfaceProps {
   matchId: string;
@@ -20,7 +21,7 @@ interface LiveScoringInterfaceProps {
   syncStatus: 'synced' | 'syncing' | 'error';
 }
 
-export default function LiveScoringInterface({
+function LiveScoringInterface({
   matchId,
   battingTeam,
   strikerId,
@@ -35,28 +36,38 @@ export default function LiveScoringInterface({
   const { success } = useToast();
   const [recording, setRecording] = useState(false);
 
-  const handleRun = (runs: number) => {
-    if (recording) return;
-    setRecording(true);
-    onBallRecorded(runs, 'normal', false);
-    setTimeout(() => setRecording(false), 300);
-  };
+  // Prevent rapid clicks with debouncing
+  const handleRun = usePreventDoubleClick(
+    useCallback((runs: number) => {
+      if (recording) return;
+      setRecording(true);
+      onBallRecorded(runs, 'normal', false);
+      setTimeout(() => setRecording(false), 300);
+    }, [recording, onBallRecorded]),
+    400 // 400ms minimum between clicks
+  );
 
-  const handleExtra = (type: 'wide' | 'no_ball' | 'bye' | 'leg_bye') => {
-    if (recording) return;
-    setRecording(true);
-    // For bye and leg_bye, we need to allow scorer to specify runs (1-6)
-    // For wide and no-ball, popup will ask for additional runs
-    // Pass a callback to allow the parent to show a popup for bye/leg_bye runs
-    onBallRecorded(1, type, false);
-    setTimeout(() => setRecording(false), 300);
-  };
+  const handleExtra = usePreventDoubleClick(
+    useCallback((type: 'wide' | 'no_ball' | 'bye' | 'leg_bye') => {
+      if (recording) return;
+      setRecording(true);
+      // For bye and leg_bye, we need to allow scorer to specify runs (1-6)
+      // For wide and no-ball, popup will ask for additional runs
+      // Pass a callback to allow the parent to show a popup for bye/leg_bye runs
+      onBallRecorded(1, type, false);
+      setTimeout(() => setRecording(false), 300);
+    }, [recording, onBallRecorded]),
+    400
+  );
 
-  const handleWicket = () => {
-    if (recording) return;
-    // Wicket will trigger a popup, but we record 0 runs
-    onBallRecorded(0, 'normal', true);
-  };
+  const handleWicket = usePreventDoubleClick(
+    useCallback(() => {
+      if (recording) return;
+      // Wicket will trigger a popup, but we record 0 runs
+      onBallRecorded(0, 'normal', true);
+    }, [recording, onBallRecorded]),
+    500 // Longer delay for wicket (more critical action)
+  );
 
   const syncStatusConfig = {
     synced: { icon: Wifi, color: 'text-green-600', bg: 'bg-green-50', label: 'Synced' },
@@ -175,4 +186,6 @@ export default function LiveScoringInterface({
     </div>
   );
 }
+
+export default memo(LiveScoringInterface);
 

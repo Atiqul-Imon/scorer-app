@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { X } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface Player {
   id: string;
@@ -54,7 +55,7 @@ export default function ChangePlayersModal({
       await onSave(strikerId, nonStrikerId, bowlerId);
       onClose();
     } catch (error) {
-      console.error('Error changing players:', error);
+      logger.error('Error changing players:', error);
     } finally {
       setSaving(false);
     }

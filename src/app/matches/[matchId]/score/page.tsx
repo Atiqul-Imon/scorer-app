@@ -1,31 +1,43 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, lazy, Suspense, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 import { useToast } from '@/contexts/ToastContext';
+import { logger } from '@/lib/logger';
 import AppLayout from '@/components/layout/AppLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import LiveScoringInterface from '@/components/scoring/LiveScoringInterface';
-import WicketPopup, { DismissalType } from '@/components/scoring/WicketPopup';
-import InningsBreakModal from '@/components/scoring/InningsBreakModal';
-import MatchEndModal from '@/components/scoring/MatchEndModal';
-import BowlerChangeModal from '@/components/scoring/BowlerChangeModal';
-import ExtrasPopup from '@/components/scoring/ExtrasPopup';
 import CurrentBattersCard from '@/components/scoring/CurrentBattersCard';
 import CurrentBowlerCard from '@/components/scoring/CurrentBowlerCard';
 import PartnershipCard from '@/components/scoring/PartnershipCard';
 import RunRateCard from '@/components/scoring/RunRateCard';
-import ManualScoreModal from '@/components/scoring/ManualScoreModal';
-import PlayerManagementModal from '@/components/scoring/PlayerManagementModal';
-import ChangePlayersModal from '@/components/scoring/ChangePlayersModal';
-import EditMatchSetupModal from '@/components/scoring/EditMatchSetupModal';
 import type { CricketMatch } from '@/types';
 import { formatScore } from '@/lib/utils';
-import { Wifi, WifiOff, RotateCcw, Settings, Edit, Users, Target } from 'lucide-react';
+import { Wifi, WifiOff, RotateCcw, Settings, Edit, Users, Target, AlertCircle } from 'lucide-react';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
+import { useMatchState } from '@/hooks/useMatchState';
+import { useMatchAPI } from '@/hooks/useMatchAPI';
+import { useMatchModals } from '@/hooks/useMatchModals';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { usePreventDoubleClick } from '@/hooks/usePreventDoubleClick';
+
+// Type import for DismissalType (must be static import for types)
+import type { DismissalType } from '@/components/scoring/WicketPopup';
+
+// Lazy load modals for code splitting
+const WicketPopup = lazy(() => import('@/components/scoring/WicketPopup'));
+const InningsBreakModal = lazy(() => import('@/components/scoring/InningsBreakModal'));
+const MatchEndModal = lazy(() => import('@/components/scoring/MatchEndModal'));
+const BowlerChangeModal = lazy(() => import('@/components/scoring/BowlerChangeModal'));
+const ExtrasPopup = lazy(() => import('@/components/scoring/ExtrasPopup'));
+const ManualScoreModal = lazy(() => import('@/components/scoring/ManualScoreModal'));
+const PlayerManagementModal = lazy(() => import('@/components/scoring/PlayerManagementModal'));
+const ChangePlayersModal = lazy(() => import('@/components/scoring/ChangePlayersModal'));
+const EditMatchSetupModal = lazy(() => import('@/components/scoring/EditMatchSetupModal'));
 
 interface BallAction {
   id: string;
@@ -46,35 +58,74 @@ export default function LiveScoringPage() {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { success, error: showError } = useToast();
 
-  const [match, setMatch] = useState<CricketMatch | null>(null);
+  // Use custom hooks for state management
+  const matchState = useMatchState();
+  const matchAPI = useMatchAPI(matchId);
+  const modals = useMatchModals();
+  const networkStatus = useNetworkStatus();
+
+  // Local component state
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'error'>('synced');
   const [ballHistory, setBallHistory] = useState<BallAction[]>([]);
-  const [showWicketPopup, setShowWicketPopup] = useState(false);
   const [pendingWicket, setPendingWicket] = useState<{ runs: number; ballType: string } | null>(null);
-  const [showInningsBreak, setShowInningsBreak] = useState(false);
-  const [showMatchEnd, setShowMatchEnd] = useState(false);
-  const [showBowlerChange, setShowBowlerChange] = useState(false);
   const [currentBowlerOvers, setCurrentBowlerOvers] = useState(0);
-  const [showExtrasPopup, setShowExtrasPopup] = useState(false);
   const [pendingExtras, setPendingExtras] = useState<{ type: 'wide' | 'no_ball' | 'bye' | 'leg_bye'; runs: number } | null>(null);
   const [freeHit, setFreeHit] = useState(false);
-  const [showManualScore, setShowManualScore] = useState(false);
-  const [showPlayerManagement, setShowPlayerManagement] = useState(false);
-  const [showChangePlayers, setShowChangePlayers] = useState(false);
-  const [showEditSetup, setShowEditSetup] = useState(false);
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
-  // Removed offline queue to simplify - direct API calls only
+  // Destructure from hooks for easier access
+  const {
+    match,
+    currentInnings,
+    battingTeam,
+    strikerId,
+    nonStrikerId,
+    bowlerId,
+    currentOver,
+    currentBall,
+    setMatch,
+    setCurrentInnings,
+    setBattingTeam,
+    setStrikerId,
+    setNonStrikerId,
+    setBowlerId,
+    setCurrentOver,
+    setCurrentBall,
+    initializeFromMatch,
+  } = matchState;
 
-  // Match state
-  const [currentInnings, setCurrentInnings] = useState(1);
-  const [battingTeam, setBattingTeam] = useState<'home' | 'away'>('home');
-  const [strikerId, setStrikerId] = useState<string>('');
-  const [nonStrikerId, setNonStrikerId] = useState<string>('');
-  const [bowlerId, setBowlerId] = useState<string>('');
-  const [currentOver, setCurrentOver] = useState(0);
-  const [currentBall, setCurrentBall] = useState(0);
+  const {
+    showWicketPopup,
+    showInningsBreak,
+    showMatchEnd,
+    showBowlerChange,
+    showExtrasPopup,
+    showManualScore,
+    showPlayerManagement,
+    showChangePlayers,
+    showEditSetup,
+    showSettingsMenu,
+    openWicketPopup,
+    closeWicketPopup,
+    openInningsBreak,
+    closeInningsBreak,
+    openMatchEnd,
+    closeMatchEnd,
+    openBowlerChange,
+    closeBowlerChange,
+    openExtrasPopup,
+    closeExtrasPopup,
+    openManualScore,
+    closeManualScore,
+    openPlayerManagement,
+    closePlayerManagement,
+    openChangePlayers,
+    closeChangePlayers,
+    openEditSetup,
+    closeEditSetup,
+    toggleSettingsMenu,
+    closeSettingsMenu,
+  } = modals;
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -92,69 +143,35 @@ export default function LiveScoringPage() {
   const loadMatch = useCallback(async () => {
     try {
       setLoading(true);
-      console.log('Loading match:', matchId);
-      const response = await api.getMatch(matchId);
-      const matchData = response.data;
+      const matchData = await matchAPI.loadMatch();
       
-      console.log('Match loaded:', {
-        matchId: matchData?.matchId,
-        currentScore: matchData?.currentScore,
-        // @ts-ignore
-        liveState: matchData?.liveState,
-      });
-      
-      setMatch(matchData);
+      if (matchData) {
+        setMatch(matchData);
+        initializeFromMatch(matchData);
 
-      // Initialize match state from match data
-      // @ts-ignore - liveState may not be in type yet
-      if (matchData.liveState) {
+        // Check if setup is complete
         // @ts-ignore
-        setCurrentInnings(matchData.liveState.currentInnings || 1);
-        // @ts-ignore
-        setBattingTeam(matchData.liveState.battingTeam || 'home');
-        // @ts-ignore
-        setStrikerId(matchData.liveState.strikerId || '');
-        // @ts-ignore
-        setNonStrikerId(matchData.liveState.nonStrikerId || '');
-        // @ts-ignore
-        setBowlerId(matchData.liveState.bowlerId || '');
-        // @ts-ignore
-        setCurrentOver(matchData.liveState.currentOver || 0);
-        // @ts-ignore
-        setCurrentBall(matchData.liveState.currentBall || 0);
-      } else {
-        // If no liveState, initialize with defaults
-        setCurrentInnings(1);
-        setBattingTeam('home');
-        setStrikerId('');
-        setNonStrikerId('');
-        setBowlerId('');
-        setCurrentOver(0);
-        setCurrentBall(0);
-      }
-
-      // Check if setup is complete
-      // @ts-ignore
-      if (!matchData.matchSetup?.isSetupComplete) {
-        router.push(`/matches/${matchId}/setup`);
-        return;
+        if (!matchData.matchSetup?.isSetupComplete) {
+          router.push(`/matches/${matchId}/setup`);
+          return;
+        }
       }
     } catch (error: any) {
-      console.error('Error loading match:', error);
-      console.error('Error details:', {
-        message: error?.message,
-        response: error?.response?.data,
-        status: error?.response?.status,
-      });
       showError(error.response?.data?.message || 'Failed to load match');
     } finally {
       setLoading(false);
     }
-  }, [matchId, router, showError]);
+  }, [matchAPI, setMatch, initializeFromMatch, matchId, router, showError]);
 
   const recordBallInternal = useCallback(
     async (runs: number, ballType: string, isWicket: boolean = false, isFreeHit: boolean = false) => {
       if (!match) return;
+
+      // Check network status
+      if (!networkStatus.isOnline) {
+        showError('Cannot record ball while offline. Please check your connection.');
+        return;
+      }
 
       // Auto-detect boundaries
       const isBoundary = runs === 4;
@@ -302,78 +319,22 @@ export default function LiveScoringPage() {
           timestamp: new Date().toISOString(),
         };
         
-        console.log('Recording ball:', { matchId, ballData });
+        logger.debug('Recording ball:', { matchId, ballData });
         
-        // Make API call directly
-        const response = await api.recordBall(matchId, ballData);
-        
-        console.log('Ball recorded successfully:', response);
-        
-        // api.recordBall returns response.data which is { success: true, data: match }
-        // So response is { success: true, data: match }
-        // response.data is the match object
-        const matchData = response?.data;
+        // Make API call using hook
+        const matchData = await matchAPI.recordBall(ballData);
         
         if (matchData && matchData.currentScore) {
-          console.log('Updating match with backend data:', {
-            currentScore: matchData.currentScore,
-            battingTeamScore: matchData.currentScore[battingTeam],
-            // @ts-ignore
-            liveState: matchData.liveState,
-          });
-          
           // Replace entire match object with backend response (source of truth)
           setMatch(matchData);
           
           // Update local state from liveState
-          // @ts-ignore
-          if (matchData.liveState) {
-            // @ts-ignore
-            if (matchData.liveState.currentInnings !== undefined) {
-              // @ts-ignore
-              setCurrentInnings(matchData.liveState.currentInnings);
-            }
-            // @ts-ignore
-            if (matchData.liveState.battingTeam) {
-              // @ts-ignore
-              setBattingTeam(matchData.liveState.battingTeam);
-            }
-            // @ts-ignore
-            if (matchData.liveState.strikerId) {
-              // @ts-ignore
-              setStrikerId(matchData.liveState.strikerId);
-            }
-            // @ts-ignore
-            if (matchData.liveState.nonStrikerId) {
-              // @ts-ignore
-              setNonStrikerId(matchData.liveState.nonStrikerId);
-            }
-            // @ts-ignore
-            if (matchData.liveState.bowlerId) {
-              // @ts-ignore
-              setBowlerId(matchData.liveState.bowlerId);
-            }
-            // @ts-ignore
-            if (matchData.liveState.currentOver !== undefined) {
-              // @ts-ignore
-              setCurrentOver(matchData.liveState.currentOver);
-            }
-            // @ts-ignore
-            if (matchData.liveState.currentBall !== undefined) {
-              // @ts-ignore
-              setCurrentBall(matchData.liveState.currentBall);
-            }
-          }
+          initializeFromMatch(matchData);
           
           // Update sync status only after successful update
           setSyncStatus('synced');
           success('Ball recorded');
         } else {
-          console.warn('No valid match data in response, reloading...', {
-            hasMatchData: !!matchData,
-            hasCurrentScore: !!matchData?.currentScore,
-            responseKeys: Object.keys(response || {}),
-          });
           // If response doesn't have valid data, reload match
           setSyncStatus('synced'); // Still mark as synced to clear the syncing state
           setTimeout(() => {
@@ -381,8 +342,8 @@ export default function LiveScoringPage() {
           }, 500);
         }
       } catch (error: any) {
-        console.error('Error recording ball:', error);
-        console.error('Error details:', {
+        logger.error('Error recording ball:', error);
+        logger.error('Error details:', {
           message: error?.message,
           response: error?.response?.data,
           status: error?.response?.status,
@@ -393,7 +354,7 @@ export default function LiveScoringPage() {
         
         // Show detailed error message
         const errorMessage = error?.response?.data?.message || error?.message || 'Failed to record ball';
-        console.error('Error message:', errorMessage);
+        logger.error('Error message:', errorMessage);
         
         // If it's a validation error about missing setup, redirect to setup
         if (errorMessage.includes('setup') || errorMessage.includes('striker') || errorMessage.includes('bowler')) {
@@ -408,7 +369,7 @@ export default function LiveScoringPage() {
         showError(errorMessage);
       }
     },
-    [match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, battingTeam, bowlerId, matchId, success, showError, loadMatch, freeHit, setFreeHit, router]
+    [match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, battingTeam, bowlerId, matchId, success, showError, loadMatch, freeHit, setFreeHit, router, networkStatus.isOnline, matchAPI, setMatch, initializeFromMatch, setCurrentOver, setCurrentBall, setStrikerId, setNonStrikerId]
   );
 
   // Handle extras popup confirmation
@@ -422,7 +383,7 @@ export default function LiveScoringPage() {
         ? 1 + additionalRuns 
         : additionalRuns;
       recordBallInternal(totalRuns, pendingExtras.type, false, freeHit);
-      setShowExtrasPopup(false);
+      closeExtrasPopup();
       setPendingExtras(null);
     },
     [pendingExtras, recordBallInternal, freeHit]
@@ -452,7 +413,7 @@ export default function LiveScoringPage() {
       // If wicket, show popup first
       if (isWicket) {
         setPendingWicket({ runs, ballType });
-        setShowWicketPopup(true);
+        openWicketPopup();
         return;
       }
 
@@ -461,7 +422,7 @@ export default function LiveScoringPage() {
       // Bye/leg_bye: just the runs (1-6)
       if (ballType === 'wide' || ballType === 'no_ball' || ballType === 'bye' || ballType === 'leg_bye') {
         setPendingExtras({ type: ballType, runs: 0 });
-        setShowExtrasPopup(true);
+        openExtrasPopup();
         return;
       }
 
@@ -495,7 +456,7 @@ export default function LiveScoringPage() {
       };
 
       setBallHistory((prev) => [...prev, newBall]);
-      setShowWicketPopup(false);
+      closeWicketPopup();
       setPendingWicket(null);
 
       // Wicket is a legal delivery - increment ball
@@ -591,15 +552,21 @@ export default function LiveScoringPage() {
           loadMatch();
         }, 300);
       } catch (error: any) {
-        console.error('Error recording wicket:', error);
+        logger.error('Error recording wicket:', error);
         showError(error?.response?.data?.message || error?.message || 'Failed to record wicket');
       }
     },
     [pendingWicket, match, currentInnings, currentOver, currentBall, strikerId, nonStrikerId, bowlerId, battingTeam, matchId, success, showError, loadMatch]
   );
 
-  const handleUndo = useCallback(async () => {
+  const handleUndoInternal = useCallback(async () => {
     if (ballHistory.length === 0) return;
+
+    // Check network status
+    if (!networkStatus.isOnline) {
+      showError('Cannot undo while offline. Please check your connection.');
+      return;
+    }
 
     // Check if match is locked
     if (match) {
@@ -630,11 +597,14 @@ export default function LiveScoringPage() {
       // Reload match to get updated state
       await loadMatch();
     } catch (error: any) {
-      console.error('Error undoing ball:', error);
+      logger.error('Error undoing ball:', error);
       setSyncStatus('error');
       showError(error?.response?.data?.message || error?.message || 'Failed to undo ball');
     }
-  }, [ballHistory, currentOver, matchId, success, showError, match, loadMatch]);
+  }, [ballHistory, currentOver, matchId, success, showError, match, loadMatch, networkStatus.isOnline, setCurrentOver, setCurrentBall]);
+
+  // Prevent rapid undo clicks
+  const handleUndo = usePreventDoubleClick(handleUndoInternal, 500);
 
   // Get max overs based on format
   const getMaxOvers = useCallback(() => {
@@ -707,18 +677,18 @@ export default function LiveScoringPage() {
     // Check if match is locked
     // @ts-ignore
     if (match.isLocked) {
-      setShowMatchEnd(false); // Don't show if already completed
+      closeMatchEnd(); // Don't show if already completed
       return;
     }
 
     // Check innings completion
     if (currentInnings === 1 && checkInningsComplete() && !showInningsBreak) {
-      setShowInningsBreak(true);
+      openInningsBreak();
     }
 
     // Check match completion
     if (currentInnings === 2 && checkMatchComplete() && !showMatchEnd) {
-      setShowMatchEnd(true);
+      openMatchEnd();
     }
 
     // Check bowler change
@@ -731,7 +701,7 @@ export default function LiveScoringPage() {
         // Calculate total overs for display
         const totalOvers = bowlerStats.overs + ((bowlerStats.balls || 0) / 6);
         setCurrentBowlerOvers(Math.floor(totalOvers * 10) / 10); // Round to 1 decimal
-        setShowBowlerChange(true);
+        openBowlerChange();
       }
     }
   }, [match, currentInnings, battingTeam, checkInningsComplete, checkMatchComplete, checkBowlerChange, showInningsBreak, showMatchEnd, showBowlerChange, bowlerId]);
@@ -758,7 +728,7 @@ export default function LiveScoringPage() {
         setBowlerId(response.data.liveState?.bowlerId || '');
         setCurrentOver(0);
         setCurrentBall(0);
-        setShowInningsBreak(false);
+        closeInningsBreak();
         success('Second innings started');
       } catch (error: any) {
         showError(error.response?.data?.message || 'Failed to start second innings');
@@ -778,7 +748,7 @@ export default function LiveScoringPage() {
       try {
         const response = await api.completeMatch(matchId, data);
         setMatch(response.data);
-        setShowMatchEnd(false);
+        closeMatchEnd();
         success('Match completed and locked');
         router.push(`/matches/${matchId}`);
       } catch (error: any) {
@@ -792,7 +762,7 @@ export default function LiveScoringPage() {
   const handleBowlerChange = useCallback(
     (newBowlerId: string) => {
       setBowlerId(newBowlerId);
-      setShowBowlerChange(false);
+      closeBowlerChange();
       setCurrentBowlerOvers(0);
       success('Bowler changed');
     },
@@ -964,27 +934,42 @@ export default function LiveScoringPage() {
       title="Live Scoring" 
       showBack
       headerActions={
-        <div className="relative">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowSettingsMenu(!showSettingsMenu)}
-            className="touch-target"
-            aria-label="Settings"
-          >
-            <Settings className="w-5 h-5" />
-          </Button>
+        <div className="flex items-center gap-2">
+          {/* Network Status Indicator */}
+          {!networkStatus.isOnline && (
+            <Badge variant="error" className="text-xs">
+              <WifiOff className="w-3 h-3 mr-1" />
+              Offline
+            </Badge>
+          )}
+          {networkStatus.wasOffline && networkStatus.isOnline && (
+            <Badge variant="success" className="text-xs animate-pulse">
+              <Wifi className="w-3 h-3 mr-1" />
+              Back Online
+            </Badge>
+          )}
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSettingsMenu}
+              className="touch-target"
+              aria-label="Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </Button>
+          </div>
           {showSettingsMenu && (
             <>
               <div 
                 className="fixed inset-0 z-40" 
-                onClick={() => setShowSettingsMenu(false)}
+                onClick={closeSettingsMenu}
               />
               <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-50">
                 <button
                   onClick={() => {
-                    setShowManualScore(true);
-                    setShowSettingsMenu(false);
+                    openManualScore();
+                    closeSettingsMenu();
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2 transition-colors"
                 >
@@ -993,8 +978,8 @@ export default function LiveScoringPage() {
                 </button>
                 <button
                   onClick={() => {
-                    setShowChangePlayers(true);
-                    setShowSettingsMenu(false);
+                    openChangePlayers();
+                    closeSettingsMenu();
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2 transition-colors"
                 >
@@ -1003,8 +988,8 @@ export default function LiveScoringPage() {
                 </button>
                 <button
                   onClick={() => {
-                    setShowPlayerManagement(true);
-                    setShowSettingsMenu(false);
+                    openPlayerManagement();
+                    closeSettingsMenu();
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2 transition-colors"
                 >
@@ -1013,8 +998,8 @@ export default function LiveScoringPage() {
                 </button>
                 <button
                   onClick={() => {
-                    setShowEditSetup(true);
-                    setShowSettingsMenu(false);
+                    openEditSetup();
+                    closeSettingsMenu();
                   }}
                   className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2 transition-colors"
                 >
@@ -1236,12 +1221,13 @@ export default function LiveScoringPage() {
       </div>
 
       {/* Modals - Outside main layout */}
-      {/* Wicket Popup */}
+      <Suspense fallback={null}>
+        {/* Wicket Popup */}
         {showWicketPopup && pendingWicket && match && (
           <WicketPopup
             isOpen={showWicketPopup}
             onClose={() => {
-              setShowWicketPopup(false);
+              closeWicketPopup();
               setPendingWicket(null);
             }}
             onConfirm={handleWicketConfirm}
@@ -1262,7 +1248,7 @@ export default function LiveScoringPage() {
           <ExtrasPopup
             isOpen={showExtrasPopup}
             onClose={() => {
-              setShowExtrasPopup(false);
+              closeExtrasPopup();
               setPendingExtras(null);
             }}
             onConfirm={handleExtrasConfirm}
@@ -1274,7 +1260,7 @@ export default function LiveScoringPage() {
         {showInningsBreak && match && match.currentScore && (
           <InningsBreakModal
             isOpen={showInningsBreak}
-            onClose={() => setShowInningsBreak(false)}
+            onClose={closeInningsBreak}
             onStartSecondInnings={handleStartSecondInnings}
             firstInningsScore={{
               runs: match.currentScore[battingTeam].runs,
@@ -1301,7 +1287,7 @@ export default function LiveScoringPage() {
         {showMatchEnd && match && match.currentScore && (
           <MatchEndModal
             isOpen={showMatchEnd}
-            onClose={() => setShowMatchEnd(false)}
+            onClose={closeMatchEnd}
             onComplete={handleMatchComplete}
             homeScore={{
               runs: match.currentScore.home.runs,
@@ -1333,7 +1319,7 @@ export default function LiveScoringPage() {
         {showBowlerChange && match && (
           <BowlerChangeModal
             isOpen={showBowlerChange}
-            onClose={() => setShowBowlerChange(false)}
+            onClose={closeBowlerChange}
             onConfirm={handleBowlerChange}
             currentBowlerName={
               // @ts-ignore
@@ -1355,7 +1341,7 @@ export default function LiveScoringPage() {
         {showManualScore && match && match.currentScore && (
           <ManualScoreModal
             isOpen={showManualScore}
-            onClose={() => setShowManualScore(false)}
+            onClose={closeManualScore}
             onSave={handleManualScore}
             currentScore={{
               runs: match.currentScore[battingTeam].runs,
@@ -1381,7 +1367,7 @@ export default function LiveScoringPage() {
         {showPlayerManagement && match && (
           <PlayerManagementModal
             isOpen={showPlayerManagement}
-            onClose={() => setShowPlayerManagement(false)}
+            onClose={closePlayerManagement}
             onSave={handlePlayerManagement}
             homePlayers={
               // @ts-ignore
@@ -1400,7 +1386,7 @@ export default function LiveScoringPage() {
         {showChangePlayers && match && (
           <ChangePlayersModal
             isOpen={showChangePlayers}
-            onClose={() => setShowChangePlayers(false)}
+            onClose={closeChangePlayers}
             onSave={handleChangePlayers}
             availableBatters={
               // @ts-ignore
@@ -1420,7 +1406,7 @@ export default function LiveScoringPage() {
         {showEditSetup && match && (
           <EditMatchSetupModal
             isOpen={showEditSetup}
-            onClose={() => setShowEditSetup(false)}
+            onClose={closeEditSetup}
             onSave={handleEditSetup}
             homeTeamName={match.teams.home.name}
             awayTeamName={match.teams.away.name}
@@ -1430,6 +1416,7 @@ export default function LiveScoringPage() {
             currentTossDecision={match.matchSetup?.tossDecision}
           />
         )}
+      </Suspense>
     </AppLayout>
   );
 }

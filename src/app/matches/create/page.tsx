@@ -9,7 +9,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
-import { format } from 'date-fns';
+// Removed date-fns dependency - using native Date methods
 
 export default function CreateMatchPage() {
   const router = useRouter();
@@ -21,7 +21,15 @@ export default function CreateMatchPage() {
   const [formData, setFormData] = useState({
     series: '',
     format: 't20' as 't20' | 'odi' | 'test' | 'first-class' | 'list-a',
-    startTime: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+    startTime: (() => {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    })(),
     venueName: '',
     venueCity: user?.scorerProfile?.location?.city || '',
     venueAddress: '',

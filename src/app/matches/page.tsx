@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
+import { logger } from '@/lib/logger';
 import AppLayout from '@/components/layout/AppLayout';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -54,7 +55,7 @@ function MatchesContent() {
       const response = await api.getScorerMatches(filters);
       setMatches(response.data.data || []);
     } catch (error) {
-      console.error('Failed to load matches:', error);
+      logger.error('Failed to load matches:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

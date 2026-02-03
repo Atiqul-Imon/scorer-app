@@ -164,7 +164,7 @@ export default function Header({
 
           {/* Quick Navigation Tabs (for main pages) */}
           {(pathname === '/dashboard' || pathname === '/matches' || pathname === '/profile') && (
-            <div className="flex items-center gap-1 border-t border-gray-100 pt-2 pb-1 overflow-x-auto hide-scrollbar">
+            <div className="flex items-center gap-1 border-t border-gray-700 pt-2 pb-1 overflow-x-auto hide-scrollbar">
               <Link
                 href="/dashboard"
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors touch-target ${

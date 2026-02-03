@@ -5,7 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { api } from '@/lib/api';
-import { connectSocket, subscribeToMatch, unsubscribeFromMatch, type ScoreUpdateEvent } from '@/lib/socket';
+// Lazy load socket.io to reduce initial bundle size
+import type { ScoreUpdateEvent } from '@/lib/socket';
 import AppLayout from '@/components/layout/AppLayout';
 import ScoreInput from '@/components/ui/ScoreInput';
 import Button from '@/components/ui/Button';
@@ -43,35 +44,40 @@ export default function UpdateScorePage() {
 
     if (isAuthenticated && matchId) {
       loadMatch();
-      connectSocket();
     }
   }, [isAuthenticated, authLoading, matchId, router]);
 
   useEffect(() => {
     if (!match || !matchId) return;
 
-    const socket = connectSocket();
+    // Lazy load socket.io only when match is loaded
+    let socketModule: typeof import('@/lib/socket') | null = null;
     let isSubscribed = true;
 
-    const handleScoreUpdate = (data: ScoreUpdateEvent) => {
-      if (isSubscribed && data.matchId === matchId) {
-        setScore((prev) => ({
-          home: data.score.home,
-          away: data.score.away,
-          matchNote: prev.matchNote, // Preserve existing note
-        }));
-      }
+    const loadSocket = async () => {
+      socketModule = await import('@/lib/socket');
+      socketModule.connectSocket();
+
+      const handleScoreUpdate = (data: ScoreUpdateEvent) => {
+        if (isSubscribed && data.matchId === matchId) {
+          setScore((prev) => ({
+            home: data.score.home,
+            away: data.score.away,
+            matchNote: prev.matchNote, // Preserve existing note
+          }));
+        }
+      };
+
+      socketModule.subscribeToMatch(matchId, handleScoreUpdate);
     };
 
-    subscribeToMatch(matchId, handleScoreUpdate);
+    loadSocket();
 
     // Cleanup on unmount
     return () => {
       isSubscribed = false;
-      unsubscribeFromMatch(matchId);
-      // Only disconnect if no other subscriptions
-      if (socket) {
-        socket.off('score-update', handleScoreUpdate);
+      if (socketModule) {
+        socketModule.unsubscribeFromMatch(matchId);
       }
     };
   }, [match, matchId]);

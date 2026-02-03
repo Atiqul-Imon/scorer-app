@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import Card from '@/components/ui/Card';
 import { User } from 'lucide-react';
 
@@ -21,7 +22,7 @@ interface CurrentBattersCardProps {
   nonStrikerId: string;
 }
 
-export default function CurrentBattersCard({
+function CurrentBattersCard({
   striker,
   nonStriker,
   strikerId,
@@ -94,6 +95,8 @@ export default function CurrentBattersCard({
     </Card>
   );
 }
+
+export default memo(CurrentBattersCard);
 
 
 

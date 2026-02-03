@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import { logger } from './logger';
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:5000';
 
@@ -45,15 +46,15 @@ export function connectSocket(token?: string): Socket {
   });
 
   socket.on('connect', () => {
-    console.log('✅ WebSocket connected');
+    logger.info('WebSocket connected');
   });
 
   socket.on('disconnect', (reason) => {
-    console.log('❌ WebSocket disconnected:', reason);
+    logger.info('WebSocket disconnected:', reason);
   });
 
   socket.on('connect_error', (error) => {
-    console.error('WebSocket connection error:', error);
+    logger.error('WebSocket connection error:', error);
   });
 
   return socket;
@@ -81,7 +82,7 @@ export function getSocket(): Socket | null {
  */
 export function subscribeToMatch(matchId: string, callback: (data: ScoreUpdateEvent) => void): void {
   if (!socket || !socket.connected) {
-    console.warn('Socket not connected');
+    logger.warn('Socket not connected');
     return;
   }
 
@@ -106,7 +107,7 @@ export function subscribeToMatch(matchId: string, callback: (data: ScoreUpdateEv
  */
 export function subscribeToLocation(location: string, callback: (data: ScoreUpdateEvent) => void): void {
   if (!socket) {
-    console.warn('Socket not connected');
+    logger.warn('Socket not connected');
     return;
   }
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import Card from '@/components/ui/Card';
 import { Target } from 'lucide-react';
 
@@ -18,17 +19,18 @@ interface CurrentBowlerCardProps {
   bowlerId: string;
 }
 
-export default function CurrentBowlerCard({ bowler, bowlerId }: CurrentBowlerCardProps) {
+function CurrentBowlerCard({ bowler, bowlerId }: CurrentBowlerCardProps) {
   if (!bowler) {
     return null;
   }
 
-  const formatOvers = (overs: number, balls: number) => {
-    const totalBalls = overs * 6 + (balls || 0);
+  const formatOvers = useMemo(() => {
+    if (!bowler) return '0.0';
+    const totalBalls = bowler.overs * 6 + (bowler.balls || 0);
     const fullOvers = Math.floor(totalBalls / 6);
     const remainingBalls = totalBalls % 6;
     return `${fullOvers}.${remainingBalls}`;
-  };
+  }, [bowler]);
 
   return (
     <Card className="p-4 lg:p-6 bg-gradient-to-br from-blue-500/10 to-gray-800 border-blue-500/20">
@@ -41,7 +43,7 @@ export default function CurrentBowlerCard({ bowler, bowlerId }: CurrentBowlerCar
         <p className="text-sm lg:text-base font-semibold text-gray-100 mb-2 lg:mb-3">{bowler.name}</p>
         <div className="flex items-center gap-4 text-xs lg:text-sm text-gray-300">
           <span className="font-medium text-gray-100">
-            {formatOvers(bowler.overs, bowler.balls)}-{bowler.runs}-{bowler.wickets}
+            {formatOvers}-{bowler.runs}-{bowler.wickets}
           </span>
           <span className="font-semibold text-gray-200">
             Economy: {bowler.economy.toFixed(2)}
@@ -51,6 +53,8 @@ export default function CurrentBowlerCard({ bowler, bowlerId }: CurrentBowlerCar
     </Card>
   );
 }
+
+export default memo(CurrentBowlerCard);
 
 
 

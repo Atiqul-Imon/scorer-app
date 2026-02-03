@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import { X, Plus, Edit2, Trash2 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface Player {
   id: string;
@@ -105,7 +106,7 @@ export default function PlayerManagementModal({
       await onSave(homePlayers, awayPlayers);
       onClose();
     } catch (error) {
-      console.error('Error saving players:', error);
+      logger.error('Error saving players:', error);
     } finally {
       setSaving(false);
     }

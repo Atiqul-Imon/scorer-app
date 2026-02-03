@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import { X } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface ManualScoreModalProps {
   isOpen: boolean;
@@ -101,7 +102,7 @@ export default function ManualScoreModal({
       });
       onClose();
     } catch (error) {
-      console.error('Error saving manual score:', error);
+      logger.error('Error saving manual score:', error);
     } finally {
       setSaving(false);
     }

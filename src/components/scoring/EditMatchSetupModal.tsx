@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { X, Trophy } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface EditMatchSetupModalProps {
   isOpen: boolean;
@@ -48,7 +49,7 @@ export default function EditMatchSetupModal({
       await onSave(tossWinner, tossDecision);
       onClose();
     } catch (error) {
-      console.error('Error saving toss:', error);
+      logger.error('Error saving toss:', error);
     } finally {
       setSaving(false);
     }

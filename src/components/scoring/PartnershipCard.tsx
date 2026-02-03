@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import Card from '@/components/ui/Card';
 import { Users } from 'lucide-react';
 
@@ -8,9 +9,12 @@ interface PartnershipCardProps {
   balls: number;
 }
 
-export default function PartnershipCard({ runs, balls }: PartnershipCardProps) {
-  const overs = Math.floor(balls / 6);
-  const remainingBalls = balls % 6;
+function PartnershipCard({ runs, balls }: PartnershipCardProps) {
+  const { overs, remainingBalls } = useMemo(() => {
+    const overs = Math.floor(balls / 6);
+    const remainingBalls = balls % 6;
+    return { overs, remainingBalls };
+  }, [balls]);
 
   return (
     <Card className="p-4 lg:p-6 bg-gradient-to-br from-purple-500/10 to-gray-800 border-purple-500/20">
@@ -30,6 +34,8 @@ export default function PartnershipCard({ runs, balls }: PartnershipCardProps) {
     </Card>
   );
 }
+
+export default memo(PartnershipCard);
 
 
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { memo, useMemo } from 'react';
 import Card from '@/components/ui/Card';
 import { TrendingUp, Target } from 'lucide-react';
 
@@ -11,13 +12,18 @@ interface RunRateCardProps {
   isChase: boolean;
 }
 
-export default function RunRateCard({
+function RunRateCard({
   currentRunRate,
   requiredRunRate,
   target,
   currentRuns,
   isChase,
 }: RunRateCardProps) {
+  const runsNeeded = useMemo(() => {
+    if (!target) return 0;
+    return Math.max(0, target - currentRuns);
+  }, [target, currentRuns]);
+
   return (
     <Card className="p-4 lg:p-6 bg-gradient-to-br from-orange-500/10 to-gray-800 border-orange-500/20">
       <div className="space-y-3 lg:space-y-4">
@@ -51,7 +57,7 @@ export default function RunRateCard({
               </div>
               <div className="mt-1 lg:mt-2">
                 <span className="text-xs lg:text-sm text-gray-400">
-                  Need {Math.max(0, target - currentRuns)} runs
+                  Need {runsNeeded} runs
                 </span>
               </div>
             </div>
@@ -61,6 +67,8 @@ export default function RunRateCard({
     </Card>
   );
 }
+
+export default memo(RunRateCard);
 
 
 

@@ -1,4 +1,6 @@
-import axios, { AxiosError, AxiosInstance } from 'axios';
+import { AxiosError } from 'axios';
+import { apiClient } from './api-client';
+import { logger } from './logger';
 import type {
   ApiResponse,
   AuthResponse,
@@ -12,123 +14,98 @@ import type {
   User,
 } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-
-// Create axios instance
-const apiClient: AxiosInstance = axios.create({
-  baseURL: `${API_BASE_URL}/api/v1`,
-  timeout: 10000, // Reduced to 10 seconds to prevent long hangs
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Request interceptor - Add auth token
-apiClient.interceptors.request.use(
-  (config) => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Response interceptor - Handle errors
+// Response interceptor - Handle errors (moved to api-client, but keep redirect logic here)
 let isRedirecting = false; // Prevent redirect loops
 let redirectCooldown = 0; // Track last redirect time
 
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      // Unauthorized - clear token
-      if (typeof window !== 'undefined' && !isRedirecting) {
-        const now = Date.now();
-        // Prevent redirects within 2 seconds (cooldown)
-        if (now - redirectCooldown < 2000) {
-          return Promise.reject(error);
-        }
-        
-        const currentPath = window.location.pathname;
-        // Only redirect if not already on login/register/home page
-        // Also skip redirect if we're on a public route
-        if (!currentPath.includes('/login') && 
-            !currentPath.includes('/register') && 
-            currentPath !== '/') {
-          isRedirecting = true;
-          redirectCooldown = now;
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          // Use replace to avoid adding to history
-          window.location.replace('/login');
-          // Reset flag after redirect
-          setTimeout(() => {
-            isRedirecting = false;
-          }, 2000);
-        } else {
-          // Already on auth page, just clear storage
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-        }
+// Wrap apiClient to add 401 redirect handling
+const handle401Redirect = (error: AxiosError) => {
+  if (error.response?.status === 401) {
+    // Unauthorized - clear token
+    if (typeof window !== 'undefined' && !isRedirecting) {
+      const now = Date.now();
+      // Prevent redirects within 2 seconds (cooldown)
+      if (now - redirectCooldown < 2000) {
+        return;
+      }
+      
+      const currentPath = window.location.pathname;
+      // Only redirect if not already on login/register/home page
+      if (!currentPath.includes('/login') && 
+          !currentPath.includes('/register') && 
+          currentPath !== '/') {
+        isRedirecting = true;
+        redirectCooldown = now;
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        // Use replace to avoid adding to history
+        window.location.replace('/login');
+        // Reset flag after redirect
+        setTimeout(() => {
+          isRedirecting = false;
+        }, 2000);
+      } else {
+        // Already on auth page, just clear storage
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
       }
     }
-    return Promise.reject(error);
   }
-);
+};
+
+// Helper to wrap API calls with error handling
+const apiCall = async <T>(fn: () => Promise<T>): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error: any) {
+    if (error instanceof AxiosError) {
+      handle401Redirect(error);
+    }
+    throw error;
+  }
+};
 
 // API methods
 export const api = {
   // Authentication
   async login(data: { emailOrPhone: string; password: string }): Promise<ApiResponse<AuthResponse>> {
-    // Ensure we only send emailOrPhone, not email - explicitly construct the payload
     const payload = {
       emailOrPhone: String(data.emailOrPhone || '').trim(),
       password: String(data.password || '').trim(),
     };
     
-    // Remove any undefined or null values
     if (!payload.emailOrPhone || !payload.password) {
       throw new Error('Email/Phone and password are required');
     }
     
-    const response = await apiClient.post<ApiResponse<AuthResponse>>('/auth/login', payload);
-    return response.data;
+    return apiCall(() => apiClient.post<ApiResponse<AuthResponse>>('/api/v1/auth/login', payload));
   },
 
   async registerScorer(data: ScorerRegistrationDto): Promise<ApiResponse<{ scorerId: string; verificationStatus: string }>> {
-    const response = await apiClient.post('/scorer/register', data);
-    return response.data;
+    return apiCall(() => apiClient.post<ApiResponse<{ scorerId: string; verificationStatus: string }>>('/api/v1/scorer/register', data));
   },
 
   // Profile
   async getProfile(): Promise<ApiResponse<User>> {
-    const response = await apiClient.get<ApiResponse<User>>('/scorer/profile');
-    return response.data;
+    return apiCall(() => apiClient.get<ApiResponse<User>>('/api/v1/scorer/profile'));
   },
 
   // Matches
   async createMatch(data: CreateMatchDto): Promise<ApiResponse<CricketMatch>> {
-    const response = await apiClient.post<ApiResponse<CricketMatch>>('/cricket/local/matches', data);
-    return response.data;
+    return apiCall(() => apiClient.post<ApiResponse<CricketMatch>>('/api/v1/cricket/local/matches', data));
   },
 
   async updateScore(matchId: string, score: UpdateScoreDto): Promise<ApiResponse<CricketMatch>> {
-    const response = await apiClient.put<ApiResponse<CricketMatch>>(
-      `/cricket/local/matches/${matchId}/score`,
+    return apiCall(() => apiClient.put<ApiResponse<CricketMatch>>(
+      `/api/v1/cricket/local/matches/${matchId}/score`,
       score
-    );
-    return response.data;
+    ));
   },
 
   async getMatch(matchId: string): Promise<ApiResponse<CricketMatch>> {
     // Use scorer endpoint to get match (includes unverified matches for the scorer)
     // This allows scorers to access their own matches regardless of verification status
-    const response = await apiClient.get<ApiResponse<CricketMatch>>(`/scorer/matches/${matchId}`);
-    return response.data;
+    return apiCall(() => apiClient.get<ApiResponse<CricketMatch>>(`/api/v1/scorer/matches/${matchId}`));
   },
 
   async getScorerMatches(filters?: MatchFilters): Promise<ApiResponse<PaginatedResponse<CricketMatch>>> {
@@ -139,10 +116,9 @@ export const api = {
     if (filters?.startDate) params.append('startDate', filters.startDate);
     if (filters?.endDate) params.append('endDate', filters.endDate);
 
-    const response = await apiClient.get<ApiResponse<PaginatedResponse<CricketMatch>>>(
-      `/scorer/matches?${params.toString()}`
-    );
-    return response.data;
+    return apiCall(() => apiClient.get<ApiResponse<PaginatedResponse<CricketMatch>>>(
+      `/api/v1/scorer/matches?${params.toString()}`
+    ));
   },
 
   async getLocalMatches(filters?: {
@@ -159,35 +135,31 @@ export const api = {
     if (filters?.status) params.append('status', filters.status);
     if (filters?.limit) params.append('limit', filters.limit.toString());
 
-    const response = await apiClient.get<ApiResponse<CricketMatch[]>>(
-      `/cricket/local/matches?${params.toString()}`
-    );
-    return response.data;
+    return apiCall(() => apiClient.get<ApiResponse<CricketMatch[]>>(
+      `/api/v1/cricket/local/matches?${params.toString()}`
+    ));
   },
 
   // Match Setup
   async completeMatchSetup(matchId: string, setupData: any): Promise<ApiResponse<CricketMatch>> {
-    const response = await apiClient.post<ApiResponse<CricketMatch>>(
-      `/cricket/local/matches/${matchId}/setup`,
+    return apiCall(() => apiClient.post<ApiResponse<CricketMatch>>(
+      `/api/v1/cricket/local/matches/${matchId}/setup`,
       setupData
-    );
-    return response.data;
+    ));
   },
 
   // Ball-by-ball scoring
   async recordBall(matchId: string, ballData: any): Promise<ApiResponse<CricketMatch>> {
-    const response = await apiClient.post<ApiResponse<CricketMatch>>(
-      `/cricket/local/matches/${matchId}/ball`,
+    return apiCall(() => apiClient.post<ApiResponse<CricketMatch>>(
+      `/api/v1/cricket/local/matches/${matchId}/ball`,
       ballData
-    );
-    return response.data;
+    ));
   },
 
   async undoLastBall(matchId: string): Promise<ApiResponse<CricketMatch>> {
-    const response = await apiClient.post<ApiResponse<CricketMatch>>(
-      `/cricket/local/matches/${matchId}/undo`
-    );
-    return response.data;
+    return apiCall(() => apiClient.post<ApiResponse<CricketMatch>>(
+      `/api/v1/cricket/local/matches/${matchId}/undo`
+    ));
   },
 
   // Second innings
@@ -195,11 +167,10 @@ export const api = {
     matchId: string,
     data: { openingBatter1Id: string; openingBatter2Id: string; firstBowlerId: string }
   ): Promise<ApiResponse<CricketMatch>> {
-    const response = await apiClient.post<ApiResponse<CricketMatch>>(
-      `/cricket/local/matches/${matchId}/second-innings`,
+    return apiCall(() => apiClient.post<ApiResponse<CricketMatch>>(
+      `/api/v1/cricket/local/matches/${matchId}/second-innings`,
       data
-    );
-    return response.data;
+    ));
   },
 
   // Complete match
@@ -212,11 +183,10 @@ export const api = {
       notes?: string;
     }
   ): Promise<ApiResponse<CricketMatch>> {
-    const response = await apiClient.post<ApiResponse<CricketMatch>>(
-      `/cricket/local/matches/${matchId}/complete`,
+    return apiCall(() => apiClient.post<ApiResponse<CricketMatch>>(
+      `/api/v1/cricket/local/matches/${matchId}/complete`,
       data
-    );
-    return response.data;
+    ));
   },
 
   // Update live state (current players, over, ball)
@@ -227,15 +197,11 @@ export const api = {
     currentOver?: number;
     currentBall?: number;
   }): Promise<ApiResponse<CricketMatch>> {
-    const response = await apiClient.put<ApiResponse<CricketMatch>>(
-      `/cricket/local/matches/${matchId}/live-state`,
+    return apiCall(() => apiClient.put<ApiResponse<CricketMatch>>(
+      `/api/v1/cricket/local/matches/${matchId}/live-state`,
       data
-    );
-    return response.data;
+    ));
   },
 };
 
-export default apiClient;
-
-
-
+export default api;
