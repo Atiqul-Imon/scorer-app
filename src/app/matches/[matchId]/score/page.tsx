@@ -57,7 +57,7 @@ export default function LiveScoringPage() {
   const [showBowlerChange, setShowBowlerChange] = useState(false);
   const [currentBowlerOvers, setCurrentBowlerOvers] = useState(0);
   const [showExtrasPopup, setShowExtrasPopup] = useState(false);
-  const [pendingExtras, setPendingExtras] = useState<{ type: 'wide' | 'no_ball'; runs: number } | null>(null);
+  const [pendingExtras, setPendingExtras] = useState<{ type: 'wide' | 'no_ball' | 'bye' | 'leg_bye'; runs: number } | null>(null);
   const [freeHit, setFreeHit] = useState(false);
   const [showManualScore, setShowManualScore] = useState(false);
   const [showPlayerManagement, setShowPlayerManagement] = useState(false);
@@ -181,7 +181,8 @@ export default function LiveScoringPage() {
         const updatedScore = { ...prev.currentScore };
         const battingScore = { ...updatedScore[battingTeam] };
         
-        // Add runs
+        // Add runs to team score (all runs count towards team total)
+        // This includes: normal runs, wides, no-balls, byes, leg-byes
         battingScore.runs += runs;
         
         // Handle wickets
@@ -189,7 +190,9 @@ export default function LiveScoringPage() {
           battingScore.wickets += 1;
         }
         
-        // Update over/ball for legal deliveries
+        // Update over/ball for legal deliveries only
+        // Legal deliveries: normal, bye, leg_bye
+        // Illegal deliveries: wide, no_ball (don't count as balls)
         const isLegalDelivery = ballType !== 'wide' && ballType !== 'no_ball';
         if (isLegalDelivery) {
           const nextBall = currentBall + 1;
@@ -219,22 +222,23 @@ export default function LiveScoringPage() {
       // Handle extras - wides and no-balls don't count as legal deliveries
       const isLegalDelivery = ballType !== 'wide' && ballType !== 'no_ball';
 
+      // Strike rotation based on total runs (for all delivery types)
+      // Wide and no-ball: Strike rotates if total runs are odd (e.g., wide 4 = 5 runs = odd = rotate)
+      // Normal, bye, leg_bye: Strike rotates if runs are odd
+      if (runs % 2 === 1) {
+        // Odd runs - swap strike
+        [newStrikerId, newNonStrikerId] = [nonStrikerId, strikerId];
+      }
+
       if (isLegalDelivery) {
         // Legal delivery - increment ball count
         nextBall += 1;
-        
-        // Handle strike rotation for runs (only on legal deliveries)
-        // Bye and leg_bye also rotate strike on odd runs
-        if (runs % 2 === 1) {
-          // Odd runs - swap strike
-          [newStrikerId, newNonStrikerId] = [nonStrikerId, strikerId];
-        }
 
         // Check if over is complete (after 6 legal deliveries)
         if (nextBall >= 6) {
           nextOver += 1;
           nextBall = 0;
-          // End of over - swap strike automatically
+          // End of over - swap strike automatically (overrides any previous rotation)
           [newStrikerId, newNonStrikerId] = [newNonStrikerId, newStrikerId];
         }
         
@@ -243,8 +247,8 @@ export default function LiveScoringPage() {
           setFreeHit(false);
         }
       } else {
-        // Wide or no-ball - no ball increment, no strike change
-        // But if it's a no-ball, set free hit for next delivery
+        // Wide or no-ball - no ball increment, but strike may rotate based on runs
+        // If it's a no-ball, set free hit for next delivery
         if (ballType === 'no_ball') {
           setFreeHit(true);
         }
@@ -412,8 +416,11 @@ export default function LiveScoringPage() {
     (additionalRuns: number) => {
       if (!pendingExtras) return;
       
-      // Total runs = 1 (base) + additional runs
-      const totalRuns = 1 + additionalRuns;
+      // For wide/no-ball: Total runs = 1 (base) + additional runs
+      // For bye/leg_bye: Total runs = just the selected runs (no base run)
+      const totalRuns = (pendingExtras.type === 'wide' || pendingExtras.type === 'no_ball') 
+        ? 1 + additionalRuns 
+        : additionalRuns;
       recordBallInternal(totalRuns, pendingExtras.type, false, freeHit);
       setShowExtrasPopup(false);
       setPendingExtras(null);
@@ -449,18 +456,16 @@ export default function LiveScoringPage() {
         return;
       }
 
-      // If wide or no-ball, show popup to get additional runs (e.g., wide 4, no-ball 6)
-      // Bye and leg_bye are recorded immediately as they count as legal deliveries
-      if (ballType === 'wide' || ballType === 'no_ball') {
+      // If wide, no-ball, bye, or leg_bye, show popup to get runs
+      // Wide/no-ball: base 1 run + additional runs
+      // Bye/leg_bye: just the runs (1-6)
+      if (ballType === 'wide' || ballType === 'no_ball' || ballType === 'bye' || ballType === 'leg_bye') {
         setPendingExtras({ type: ballType, runs: 0 });
         setShowExtrasPopup(true);
         return;
       }
-      
-      // Bye and leg_bye: Record immediately (they're legal deliveries)
-      // The runs value is already passed correctly
 
-      // Record the ball immediately
+      // Normal delivery: Record immediately
       await recordBallInternal(runs, ballType, false, freeHit);
     },
     [match, freeHit, showError, recordBallInternal, strikerId, nonStrikerId, bowlerId, matchId, router]
@@ -490,23 +495,38 @@ export default function LiveScoringPage() {
       };
 
       setBallHistory((prev) => [...prev, newBall]);
-      setStrikerId(data.incomingBatterId);
       setShowWicketPopup(false);
       setPendingWicket(null);
 
       // Wicket is a legal delivery - increment ball
       let nextOver = currentOver;
       let nextBall = currentBall + 1;
+      
+      // Handle incoming batter position based on runs
+      // If odd runs: incoming batter at non-striker's end (current non-striker becomes striker)
+      // If even runs: incoming batter at striker's end (becomes striker)
+      let newStrikerId = strikerId;
+      let newNonStrikerId = nonStrikerId;
+      
+      if (pendingWicket.runs % 2 === 1) {
+        // Odd runs: incoming batter at non-striker's end
+        newStrikerId = nonStrikerId;
+        newNonStrikerId = data.incomingBatterId;
+      } else {
+        // Even runs: incoming batter at striker's end
+        newStrikerId = data.incomingBatterId;
+        // Non-striker stays the same
+      }
+      
       if (nextBall >= 6) {
         nextOver += 1;
         nextBall = 0;
         // End of over - swap strike automatically
-        setStrikerId(nonStrikerId);
-        setNonStrikerId(data.incomingBatterId);
-      } else {
-        // Incoming batter becomes striker
-        setStrikerId(data.incomingBatterId);
+        [newStrikerId, newNonStrikerId] = [newNonStrikerId, newStrikerId];
       }
+      
+      setStrikerId(newStrikerId);
+      setNonStrikerId(newNonStrikerId);
       setCurrentOver(nextOver);
       setCurrentBall(nextBall);
 
@@ -1225,6 +1245,19 @@ export default function LiveScoringPage() {
             }
             availablePlayers={availablePlayers}
             availableFielders={availableFielders}
+          />
+        )}
+
+        {/* Extras Popup */}
+        {showExtrasPopup && pendingExtras && (
+          <ExtrasPopup
+            isOpen={showExtrasPopup}
+            onClose={() => {
+              setShowExtrasPopup(false);
+              setPendingExtras(null);
+            }}
+            onConfirm={handleExtrasConfirm}
+            type={pendingExtras.type}
           />
         )}
 

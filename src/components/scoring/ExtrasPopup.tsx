@@ -9,19 +9,22 @@ interface ExtrasPopupProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (runs: number) => void;
-  type: 'wide' | 'no_ball';
+  type: 'wide' | 'no_ball' | 'bye' | 'leg_bye';
 }
 
 export default function ExtrasPopup({ isOpen, onClose, onConfirm, type }: ExtrasPopupProps) {
-  const [selectedRuns, setSelectedRuns] = useState(0);
+  // For bye/leg_bye, default to 1 run. For wide/no-ball, default to 0 (base 1 run already counted)
+  const [selectedRuns, setSelectedRuns] = useState((type === 'bye' || type === 'leg_bye') ? 1 : 0);
 
   const handleConfirm = () => {
     onConfirm(selectedRuns);
     setSelectedRuns(0);
   };
 
-  const typeLabel = type === 'wide' ? 'Wide' : 'No Ball';
-  const defaultRuns = 1; // Base run for wide/no-ball
+  const typeLabel = type === 'wide' ? 'Wide' : type === 'no_ball' ? 'No Ball' : type === 'bye' ? 'Bye' : 'Leg Bye';
+  // For wide/no-ball: base 1 run + additional runs
+  // For bye/leg_bye: just the runs (no base run)
+  const defaultRuns = (type === 'wide' || type === 'no_ball') ? 1 : 0;
   const totalRuns = defaultRuns + selectedRuns;
 
   if (!isOpen) return null;
@@ -31,7 +34,11 @@ export default function ExtrasPopup({ isOpen, onClose, onConfirm, type }: Extras
       <Card className="w-full max-w-sm">
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">{typeLabel} - Additional Runs?</h2>
+            <h2 className="text-lg font-semibold text-gray-900">
+              {type === 'wide' || type === 'no_ball' 
+                ? `${typeLabel} - Additional Runs?`
+                : typeLabel}
+            </h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-lg touch-target"
@@ -43,11 +50,15 @@ export default function ExtrasPopup({ isOpen, onClose, onConfirm, type }: Extras
 
           <div className="space-y-4">
             <p className="text-sm text-gray-600">
-              Did the {typeLabel.toLowerCase()} result in additional runs? (e.g., wide 4, no-ball 6)
+              {type === 'wide' || type === 'no_ball' 
+                ? `Did the ${typeLabel.toLowerCase()} result in additional runs? (e.g., wide 4, no-ball 6)`
+                : `How many runs from the ${typeLabel.toLowerCase()}? (1-6 runs)`}
             </p>
 
-            <div className="grid grid-cols-5 gap-2">
-              {[0, 1, 2, 3, 4].map((runs) => (
+            <div className="grid grid-cols-6 gap-2">
+              {(type === 'wide' || type === 'no_ball' 
+                ? [0, 1, 2, 3, 4] 
+                : [1, 2, 3, 4, 5, 6]).map((runs) => (
                 <Button
                   key={runs}
                   variant={selectedRuns === runs ? 'primary' : 'outline'}
